@@ -1,0 +1,4 @@
+[core]
+    remote = machlearn
+['remote "machlearn"']
+    url = gs://few-shot-faqir/dvc-data/
