@@ -1,7 +1,7 @@
 import numpy as np
 from typing import List
 import math
-
+import logging
 
 def compute_v_batch(actual,predicted,k):
     """
@@ -13,7 +13,7 @@ def compute_v_batch(actual,predicted,k):
     for i,p_i in enumerate(predicted):
         v_i = []
         if len(p_i) < k:
-            print("Cannot compute at k since prediction doesnt have enough values")
+            logging.warning("Cannot compute at k since prediction doesnt have enough values")
             raise
         for j,p in enumerate(p_i[:k]):
             if p in actual[i] and p not in p_i[:j]:
