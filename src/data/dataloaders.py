@@ -11,23 +11,36 @@ from src.data.data_reader import (  # isort:skip
 )
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-tokenizer = Tokenizer.from_pretrained("bert-base-uncased")
+
+
+def tokenize_batch(batch, tokenizer="bert"):
+    label_list, text_list, = [], []
+
+    if tokenizer == "bert":
+
+        tokenizer = Tokenizer.from_pretrained("bert-base-uncased")
+
+        for example in batch:
+            label_list.append(example["Label"])
+            processed_text = torch.tensor(
+                tokenizer.encode(example["Text"]).ids, dtype=torch.int64
+            )
+            text_list.append(processed_text)
+            text_list = pad_sequence(text_list, batch_first=True)
+
+    else:
+        for example in batch:
+            label_list.append(example["Label"])
+            text_list.append(processed_text)
+            text_list = torch.tensor(text_list, dtype=torch.int64)
+
+    label_list = torch.tensor(label_list, dtype=torch.int64)
+    return label_list, text_list
 
 
 def collate_batch(batch):
-
-    label_list, text_list, = [], []
-
-    for example in batch:
-        label_list.append(example["Label"])
-        processed_text = torch.tensor(
-            tokenizer.encode(example["Text"]).ids, dtype=torch.int64
-        )
-        text_list.append(processed_text)
-
-    label_list = torch.tensor(label_list, dtype=torch.int64)
-
-    text_list = pad_sequence(text_list, batch_first=True)
+    # change tokenizer here
+    label_list, text_list = tokenize_batch(batch, tokenizer="bert")
 
     return text_list.to(device), label_list.to(device)
 
