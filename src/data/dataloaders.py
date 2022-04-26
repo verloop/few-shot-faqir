@@ -3,6 +3,7 @@ import torch
 from tokenizers import Tokenizer
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
+from transformers import AutoTokenizer
 
 from src.data.data_reader import (  # isort:skip
     DialoglueIntentDataset,
@@ -13,35 +14,27 @@ from src.data.data_reader import (  # isort:skip
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def tokenize_batch(batch, tokenizer="bert"):
-    label_list, text_list, = [], []
+def tokenize_batch(batch, tokenizer: AutoTokenizer = None):
+    label_list, text_list = [], []
 
-    if tokenizer == "bert":
+    for example in batch:
+        label_list.append(example["Label"])
+        text_list.append(example["Text"])
 
-        tokenizer = Tokenizer.from_pretrained("bert-base-uncased")
-
-        for example in batch:
-            label_list.append(example["Label"])
-            processed_text = torch.tensor(
-                tokenizer.encode(example["Text"]).ids, dtype=torch.int64
-            )
-            text_list.append(processed_text)
-            text_list = pad_sequence(text_list, batch_first=True)
-
+    if tokenizer:
+        batch_output = tokenizer(
+            text_list, padding=True, truncation=True, return_tensors="pt"
+        )
     else:
-        for example in batch:
-            label_list.append(example["Label"])
-            text_list.append(processed_text)
-            text_list = torch.tensor(text_list, dtype=torch.int64)
+        batch_output = torch.tensor(text_list, dtype=torch.int64)
 
     label_list = torch.tensor(label_list, dtype=torch.int64)
-    return label_list, text_list
+
+    return label_list, batch_output
 
 
-def collate_batch(batch):
-    # change tokenizer here
-    label_list, text_list = tokenize_batch(batch, tokenizer="bert")
-
+def collate_batch(batch, tokenizer: AutoTokenizer = None):
+    label_list, text_list = tokenize_batch(batch, tokenizer)
     return text_list.to(device), label_list.to(device)
 
 
@@ -50,32 +43,47 @@ class HaptikDataLoader:
         self.data_path = data_path
         print(f"Loading data from {self.data_path}")
 
-    def get_dataloader(self, batch_size=4, shuffle=True):
+    def get_dataloader(
+        self, batch_size=4, shuffle=True, tokenizer: AutoTokenizer = None
+    ):
         dataset = HapticDataset(self.data_path)
         return DataLoader(
-            dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_batch
+            dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            collate_fn=lambda b: collate_batch(b, tokenizer),
         )
 
 
-class DialogueIntentDataLoaders:
+class DialogueIntentDataLoader:
     def __init__(self, data_path="data/dialoglue/banking/train.csv"):
         self.data_path = data_path
         print(f"Loading data from {self.data_path}")
 
-    def get_dataloader(self, batch_size=4, shuffle=True):
+    def get_dataloader(
+        self, batch_size=4, shuffle=True, tokenizer: AutoTokenizer = None
+    ):
         dataset = DialoglueIntentDataset(self.data_path)
         return DataLoader(
-            dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_batch
+            dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            collate_fn=lambda b: collate_batch(b, tokenizer),
         )
 
 
-class DialogueTopDataLoaders:
+class DialogueTopDataLoader:
     def __init__(self, data_path="data/dialoglue/top/train.txt"):
         self.data_path = data_path
         print(f"Loading data from {self.data_path}")
 
-    def get_dataloader(self, batch_size=4, shuffle=True):
+    def get_dataloader(
+        self, batch_size=4, shuffle=True, tokenizer: AutoTokenizer = None
+    ):
         dataset = DialoglueTOPDataset(self.data_path)
         return DataLoader(
-            dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_batch
+            dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            collate_fn=lambda b: collate_batch(b, tokenizer),
         )
