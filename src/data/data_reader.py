@@ -10,16 +10,19 @@ SPECIAL_TOKENS = {"[SEP]", "[CLS]", "[PAD]"}
 
 
 class DialoglueIntentDataset(Dataset):
-    def __init__(self, data_path: str):
+    def __init__(self, data_path: str, intent_label_to_idx=None):
 
         data_dirname = os.path.dirname(os.path.abspath(data_path))
 
         # Intent categories
         intent_vocab_path = os.path.join(data_dirname, "categories.json")
         intent_names = json.load(open(intent_vocab_path))
-        self.intent_label_to_idx = dict(
-            (label, idx) for idx, label in enumerate(intent_names)
-        )
+        if intent_label_to_idx:
+            self.intent_label_to_idx = intent_label_to_idx
+        else:
+            self.intent_label_to_idx = dict(
+                (label, idx) for idx, label in enumerate(intent_names)
+            )
         self.intent_idx_to_label = {
             idx: label for label, idx in self.intent_label_to_idx.items()
         }
@@ -43,15 +46,18 @@ class DialoglueIntentDataset(Dataset):
 
 
 class DialoglueTOPDataset(Dataset):
-    def __init__(self, data_path: str):
+    def __init__(self, data_path: str, intent_label_to_idx=None):
         data_dirname = os.path.dirname(os.path.abspath(data_path))
 
         # Intent categories
         intent_vocab_path = os.path.join(data_dirname, "vocab.intent")
         intent_names = [e.strip() for e in open(intent_vocab_path).readlines()]
-        self.intent_label_to_idx = dict(
-            (label, idx) for idx, label in enumerate(intent_names)
-        )
+        if intent_label_to_idx:
+            self.intent_label_to_idx = intent_label_to_idx
+        else:
+            self.intent_label_to_idx = dict(
+                (label, idx) for idx, label in enumerate(intent_names)
+            )
         self.intent_idx_to_label = {
             idx: label for label, idx in self.intent_label_to_idx.items()
         }
