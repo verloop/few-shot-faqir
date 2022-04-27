@@ -20,7 +20,8 @@ def tokenize_batch(batch, tokenizer: AutoTokenizer = None):
     for example in batch:
         label_list.append(example["Label"])
         text_list.append(example["Text"])
-
+    print(text_list[0])
+    print(label_list[0])
     if tokenizer:
         batch_output = tokenizer(
             text_list, padding=True, truncation=True, return_tensors="pt"
@@ -39,16 +40,18 @@ def collate_batch(batch, tokenizer: AutoTokenizer = None):
 
 
 class HaptikDataLoader:
-    def __init__(self, data_path="data/haptik/train/curekart_train.csv"):
+    def __init__(
+        self, data_path="data/haptik/train/curekart_train.csv", intent_label_to_idx=None
+    ):
         self.data_path = data_path
         print(f"Loading data from {self.data_path}")
+        self.dataset = HapticDataset(self.data_path, intent_label_to_idx)
 
     def get_dataloader(
         self, batch_size=4, shuffle=True, tokenizer: AutoTokenizer = None
     ):
-        dataset = HapticDataset(self.data_path)
         return DataLoader(
-            dataset,
+            self.dataset,
             batch_size=batch_size,
             shuffle=shuffle,
             collate_fn=lambda b: collate_batch(b, tokenizer),
@@ -56,16 +59,19 @@ class HaptikDataLoader:
 
 
 class DialogueIntentDataLoader:
-    def __init__(self, data_path="data/dialoglue/banking/train.csv"):
+    def __init__(
+        self, data_path="data/dialoglue/banking/train.csv", intent_label_to_idx=None
+    ):
         self.data_path = data_path
         print(f"Loading data from {self.data_path}")
+        self.dataset = DialoglueIntentDataset(self.data_path, intent_label_to_idx)
 
     def get_dataloader(
         self, batch_size=4, shuffle=True, tokenizer: AutoTokenizer = None
     ):
-        dataset = DialoglueIntentDataset(self.data_path)
+
         return DataLoader(
-            dataset,
+            self.dataset,
             batch_size=batch_size,
             shuffle=shuffle,
             collate_fn=lambda b: collate_batch(b, tokenizer),
@@ -73,16 +79,18 @@ class DialogueIntentDataLoader:
 
 
 class DialogueTopDataLoader:
-    def __init__(self, data_path="data/dialoglue/top/train.txt"):
+    def __init__(
+        self, data_path="data/dialoglue/top/train.txt", intent_label_to_idx=None
+    ):
         self.data_path = data_path
         print(f"Loading data from {self.data_path}")
+        dataset = DialoglueTOPDataset(self.data_path, intent_label_to_idx)
 
     def get_dataloader(
         self, batch_size=4, shuffle=True, tokenizer: AutoTokenizer = None
     ):
-        dataset = DialoglueTOPDataset(self.data_path)
         return DataLoader(
-            dataset,
+            self.dataset,
             batch_size=batch_size,
             shuffle=shuffle,
             collate_fn=lambda b: collate_batch(b, tokenizer),

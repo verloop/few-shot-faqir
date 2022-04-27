@@ -78,13 +78,16 @@ class DialoglueTOPDataset(Dataset):
 
 
 class HapticDataset(Dataset):
-    def __init__(self, data_path: str):
+    def __init__(self, data_path: str, intent_label_to_idx=None):
         df = pd.read_csv(data_path)
-        intent_names = list(set(df["label"]))
+        intent_names = list(set(df["label"])) + ["NO_NODES_DETECTED"]
+        if intent_label_to_idx:
+            self.intent_label_to_idx = intent_label_to_idx
+        else:
+            self.intent_label_to_idx = dict(
+                (label, idx) for idx, label in enumerate(intent_names)
+            )
 
-        self.intent_label_to_idx = dict(
-            (label, idx) for idx, label in enumerate(intent_names)
-        )
         self.intent_idx_to_label = {
             idx: label for label, idx in self.intent_label_to_idx.items()
         }
