@@ -244,17 +244,17 @@ def ndcg_at_k_batch(
     return mean_ndcg
 
 
-def f1_score_k(actual, predicted, k, f1_type="macro"):
+def f1_score_micro_k(actual, predicted, k):
     """
     Computes F1 score.
     actual : List of list valid FAQ responses for a user utterance
     predicted : List of list of predicted FAQ responses for a user utterance
     k : maximum number of elements to be considered for each user utterance
-    type: macro/micro/weighted
+    type: Only micro supported as actual is a list of lists of all valid faq responses. If prediction has anyone, its deemed to be correct
     """
     v = compute_v_batch(actual, predicted, k)
     v_pred = np.sum(v[:, :k], axis=1)
     v_predicted = v_pred > 0
     v_predicted = v_predicted.astype(int)
     v_actual = [1] * len(actual)
-    return round(f1_score(v_actual, v_predicted, average=f1_type), 2)
+    return round(f1_score(v_actual, v_predicted, average="micro"), 2)

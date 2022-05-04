@@ -1,11 +1,12 @@
 import numpy as np
 import pandas as pd
+from sklearn.metrics import f1_score
+
 import torch
 import yaml
-from transformers import AutoTokenizer
-
 from src.data.dataloaders import DialogueIntentDataLoader, HaptikDataLoader
 from src.embeddings.dense_embeddings import DenseEmbeddings, get_similar
+from transformers import AutoTokenizer
 
 from src.utils.metrics import (  # isort:skip
     map_at_k,
@@ -13,7 +14,9 @@ from src.utils.metrics import (  # isort:skip
     ndcg_at_k_batch,
     precision_at_k_batch,
     success_rate_at_k_batch,
+    f1_score_micro_k,
 )
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -65,8 +68,20 @@ def run_evaluation_metrics(config, test_labels_, pred_labels):
             ndcg_k = ndcg_at_k_batch(test_labels_, pred_labels_k, k)
             print(f"NDCG @ {k} is {ndcg_k}")
         if config["EVALUATION"]["CHECK_MRR"]:
-            mrr_test = mrr(test_labels_, pred_labels_k)
-            print(f"MRR is {mrr_test}")
+            mrr_val = mrr(test_labels_, pred_labels_k)
+            print(f"MRR is {mrr_val}")
+        if config["EVALUATION"]["CHECK_F1_MICRO"]:
+            f1_val = f1_score_micro_k(test_labels_, pred_labels_k, k)
+            print(f"F1 micro is {f1_val}")
+        if k == 1:
+            actual = [each[0] for each in test_labels_]
+            predicted = [each[0] for each in pred_labels_k]
+            if config["EVALUATION"]["CHECK_F1_MACRO"]:
+                f1_val = f1_score(actual, predicted, average="macro")
+                print(f"F1 macro is {f1_val}")
+            if config["EVALUATION"]["CHECK_F1_WEIGHTED"]:
+                f1_val = f1_score(actual, predicted, average="weighted")
+                print(f"F1 weighted is {f1_val}")
 
 
 dataloader = get_dataloader(config)

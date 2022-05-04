@@ -23,5 +23,8 @@ EVALUATION:
   CHECK_MAP: True
   CHECK_NDCG: True
   CHECK_MRR: True
+  CHECK_F1_MACRO: True
+  CHECK_F1_MICRO: True
+  CHECK_F1_WEIGHTED: True
   # Specify k values less than 10
   K_VAL : [1,2,5,10]
