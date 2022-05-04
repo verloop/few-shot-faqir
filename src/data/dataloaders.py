@@ -25,17 +25,20 @@ def tokenize_batch(batch, tokenizer: AutoTokenizer = None):
         batch_output = tokenizer(
             text_list, padding=True, truncation=True, return_tensors="pt"
         )
+        label_list = torch.tensor(label_list, dtype=torch.int64)
     else:
-        batch_output = torch.tensor(text_list, dtype=torch.int64)
-
-    label_list = torch.tensor(label_list, dtype=torch.int64)
+        batch_output = text_list
+        label_list = np.array(label_list)
 
     return batch_output, label_list, text_list
 
 
 def collate_batch(batch, tokenizer: AutoTokenizer = None):
     batch_output, label_list, text_list = tokenize_batch(batch, tokenizer)
-    return batch_output.to(device), label_list.to(device), text_list
+    if tokenizer:
+        batch_output.to(device)
+        label_list.to(device)
+    return batch_output, label_list, text_list
 
 
 class HaptikDataLoader:
