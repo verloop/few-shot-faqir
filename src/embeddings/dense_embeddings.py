@@ -17,6 +17,7 @@ class DenseEmbeddings:
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.model = AutoModel.from_pretrained(self.model_name)
         self.model.to(device)
+        self.model.eval()
 
     def mean_pooling(self, model_output, attention_mask):
         token_embeddings = model_output[0]
