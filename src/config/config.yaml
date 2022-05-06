@@ -1,0 +1,32 @@
+DATASETS:
+  # Source - haptik / dialoglue / cough
+  DATASET_SOURCE: "haptik"
+  # For Haptik - curekart / powerplay11 / sofmattress
+  # For Dialogue - banking / clinic / hwu
+  DATASET_NAME: "curekart"
+  OOS_CLASS_NAME: "NO_NODES_DETECTED"
+
+EMBEDDINGS:
+  # Specify embedding type - dense / sparse
+  EMBEDDING_TYPE : "sparse"
+  # If sparse embedding is used, specify "tfidf-word"/"tfidf-char"/"cv"
+  SPARSE_EMB_METHOD: "tfidf-word"
+  # Specify a model name which is implemented via Huggingface - "bert-base-uncased" / "sentence-transformers/all-MiniLM-L6-v2"
+  MODEL_NAME : "sentence-transformers/all-MiniLM-L6-v2"
+  OOS_THRESHOLD : 0.6
+
+
+TRAINING:
+
+EVALUATION:
+  # Set True/False for the evaluation metrics
+  CHECK_SUCCESS_RATE: True
+  CHECK_PRECISION : True
+  CHECK_MAP: True
+  CHECK_NDCG: True
+  CHECK_MRR: True
+  CHECK_F1_MACRO: True
+  CHECK_F1_MICRO: True
+  CHECK_F1_WEIGHTED: True
+  # Specify k values less than 10
+  K_VAL : [1,2,5,10]

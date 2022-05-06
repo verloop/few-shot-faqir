@@ -14,36 +14,40 @@ from src.data.data_reader import (  # isort:skip
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def tokenize_batch(batch, tokenizer: AutoTokenizer = None):
+def collate_batch(batch, tokenizer: AutoTokenizer = None):
     label_list, text_list = [], []
 
     for example in batch:
         label_list.append(example["Label"])
         text_list.append(example["Text"])
-    print(text_list[0])
-    print(label_list[0])
+
     if tokenizer:
         batch_output = tokenizer(
             text_list, padding=True, truncation=True, return_tensors="pt"
         )
+        label_list = torch.tensor(label_list, dtype=torch.int64)
     else:
-        batch_output = torch.tensor(text_list, dtype=torch.int64)
+        batch_output = text_list
+        label_list = np.array(label_list)
 
-    label_list = torch.tensor(label_list, dtype=torch.int64)
+    if tokenizer:
+        batch_output.to(device)
+        label_list.to(device)
 
-    return label_list, batch_output
-
-
-def collate_batch(batch, tokenizer: AutoTokenizer = None):
-    label_list, text_list = tokenize_batch(batch, tokenizer)
-    return text_list.to(device), label_list.to(device)
+    return batch_output, label_list, text_list
 
 
 class HaptikDataLoader:
     def __init__(
-        self, data_path="data/haptik/train/curekart_train.csv", intent_label_to_idx=None
+        self,
+        data_source="data/haptik",
+        dataset_name="curekart",
+        data_type="train",
+        intent_label_to_idx=None,
     ):
-        self.data_path = data_path
+        self.data_path = (
+            f"data/{data_source}/{data_type}/{dataset_name}_{data_type}.csv"
+        )
         print(f"Loading data from {self.data_path}")
         self.dataset = HapticDataset(self.data_path, intent_label_to_idx)
 
@@ -60,9 +64,13 @@ class HaptikDataLoader:
 
 class DialogueIntentDataLoader:
     def __init__(
-        self, data_path="data/dialoglue/banking/train.csv", intent_label_to_idx=None
+        self,
+        data_source="dialoglue",
+        dataset_name="banking",
+        data_type="train",
+        intent_label_to_idx=None,
     ):
-        self.data_path = data_path
+        self.data_path = f"data/{data_source}/{dataset_name}/{data_type}.csv"
         print(f"Loading data from {self.data_path}")
         self.dataset = DialoglueIntentDataset(self.data_path, intent_label_to_idx)
 
@@ -80,9 +88,13 @@ class DialogueIntentDataLoader:
 
 class DialogueTopDataLoader:
     def __init__(
-        self, data_path="data/dialoglue/top/train.txt", intent_label_to_idx=None
+        self,
+        data_source="dialoglue",
+        dataset_name="banking",
+        data_type="train",
+        intent_label_to_idx=None,
     ):
-        self.data_path = data_path
+        self.data_path = f"data/{data_source}/{dataset_name}/{data_type}.csv"
         print(f"Loading data from {self.data_path}")
         dataset = DialoglueTOPDataset(self.data_path, intent_label_to_idx)
 
