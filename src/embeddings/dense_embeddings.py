@@ -63,9 +63,7 @@ class DenseEmbeddings:
                 model_output, encoded_input["attention_mask"]
             )
         elif pooling_type == "cls":
-            sentence_embeddings = self.cls_pooling(
-                model_output, encoded_input["attention_mask"]
-            )
+            sentence_embeddings = self.cls_pooling(model_output)
         else:
             print("Pooling type unsupported")
             return None
