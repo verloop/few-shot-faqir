@@ -14,7 +14,7 @@ from src.data.data_reader import (  # isort:skip
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def tokenize_batch(batch, tokenizer: AutoTokenizer = None):
+def collate_batch(batch, tokenizer: AutoTokenizer = None):
     label_list, text_list = [], []
 
     for example in batch:
@@ -30,14 +30,10 @@ def tokenize_batch(batch, tokenizer: AutoTokenizer = None):
         batch_output = text_list
         label_list = np.array(label_list)
 
-    return batch_output, label_list, text_list
-
-
-def collate_batch(batch, tokenizer: AutoTokenizer = None):
-    batch_output, label_list, text_list = tokenize_batch(batch, tokenizer)
     if tokenizer:
         batch_output.to(device)
         label_list.to(device)
+
     return batch_output, label_list, text_list
 
 

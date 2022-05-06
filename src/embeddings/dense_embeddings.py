@@ -27,7 +27,7 @@ class DenseEmbeddings:
             input_mask_expanded.sum(1), min=1e-9
         )
 
-    def max_pooling(model_output, attention_mask):
+    def max_pooling(self, model_output, attention_mask):
         token_embeddings = model_output[
             0
         ]  # First element of model_output contains all token embeddings
@@ -39,7 +39,7 @@ class DenseEmbeddings:
         ] = -1e9  # Set padding tokens to large negative value
         return torch.max(token_embeddings, 1)[0]
 
-    def cls_pooling(model_output, attention_mask):
+    def cls_pooling(self, model_output):
         return model_output[0][:, 0]
 
     def get_embeddings(
