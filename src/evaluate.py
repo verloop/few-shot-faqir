@@ -112,7 +112,7 @@ def evaluate_bm25(config):
                 if tok.lemma_:
                     preprocessed_text.append(tok.lemma_)
                 else:
-                    preprocessed_text.append(tok)
+                    preprocessed_text.append(tok.text)
         return preprocessed_text
 
     dataloader = get_dataloader_class(config)
@@ -129,13 +129,14 @@ def evaluate_bm25(config):
     )
     dl_train_data = dl_train.get_dataloader(batch_size=100, shuffle=False)
     dl_test_data = dl_test.get_dataloader(batch_size=1, shuffle=False)
-    train_data = get_text_from_dl(dl_train_data)
 
     # Get train and test labels
     train_labels = []
+    train_data = []
     for batch in dl_train_data:
-        for label in batch[1]:
+        for label, text in zip(batch[1], batch[2]):
             train_labels.append(label)
+            train_data.append(text)
 
     train_labels = np.array(train_labels)
 
