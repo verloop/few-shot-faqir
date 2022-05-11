@@ -127,7 +127,7 @@ def evaluate_bm25(config):
         data_type="test",
         intent_label_to_idx=dl_train.dataset.intent_label_to_idx,
     )
-    dl_train_data = dl_train.get_dataloader(batch_size=100)
+    dl_train_data = dl_train.get_dataloader(batch_size=100, shuffle=False)
     dl_test_data = dl_test.get_dataloader(batch_size=1, shuffle=False)
     train_data = get_text_from_dl(dl_train_data)
 
