@@ -19,6 +19,8 @@ EMBEDDINGS:
 TRAINING:
 
 EVALUATION:
+  # Set True for bm25 evaluation and False for dense/sparse embedding evaluation
+  USE_BM25: True
   # Set True/False for the evaluation metrics
   CHECK_SUCCESS_RATE: True
   CHECK_PRECISION : True

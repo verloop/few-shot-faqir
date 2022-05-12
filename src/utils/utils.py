@@ -1,7 +1,7 @@
 import numpy as np
+import torch
 from sklearn.metrics import f1_score
 
-import torch
 from src.data.dataloaders import DialogueIntentDataLoader, HaptikDataLoader
 
 from src.utils.metrics import (  # isort:skip
@@ -16,7 +16,7 @@ from src.utils.metrics import (  # isort:skip
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def get_dataloader(config):
+def get_dataloader_class(config):
     if config["DATASETS"]["DATASET_SOURCE"] == "haptik":
         return HaptikDataLoader
     elif config["DATASETS"]["DATASET_SOURCE"] == "dialoglue":
@@ -60,10 +60,10 @@ def get_batched_embeddings_sparse(dl_data, emb_model):
     return embeddings, labels, texts
 
 
-def get_train_text(dl_data):
+def get_text_from_dl(dl_data):
     batch_output = []
     for x in dl_data:
-        batch_output = batch_output + x[0]
+        batch_output.extend(x[2])
     return batch_output
 
 
