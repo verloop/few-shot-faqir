@@ -9,6 +9,7 @@ from src.data.data_reader import (  # isort:skip
     DialoglueIntentDataset,
     DialoglueTOPDataset,
     HapticDataset,
+    QuestionPairDataset,
 )
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -40,7 +41,7 @@ def collate_batch(batch, tokenizer: AutoTokenizer = None):
 class HaptikDataLoader:
     def __init__(
         self,
-        data_source="data/haptik",
+        data_source="haptik",
         dataset_name="curekart",
         data_type="train",
         intent_label_to_idx=None,
@@ -48,6 +49,7 @@ class HaptikDataLoader:
         self.data_path = (
             f"data/{data_source}/{data_type}/{dataset_name}_{data_type}.csv"
         )
+        self.qp_data_path = f"data/{data_source}/{data_type}/{dataset_name}_{data_type}_question_pairs.csv"
         print(f"Loading data from {self.data_path}")
         self.dataset = HapticDataset(self.data_path, intent_label_to_idx)
 
@@ -61,6 +63,15 @@ class HaptikDataLoader:
             collate_fn=lambda b: collate_batch(b, tokenizer),
         )
 
+    def get_qp_dataloader(self, batch_size=4, shuffle=True):
+        self.qp_dataset = QuestionPairDataset(self.qp_data_path)
+
+        return DataLoader(
+            self.qp_dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+        )
+
 
 class DialogueIntentDataLoader:
     def __init__(
@@ -71,6 +82,9 @@ class DialogueIntentDataLoader:
         intent_label_to_idx=None,
     ):
         self.data_path = f"data/{data_source}/{dataset_name}/{data_type}.csv"
+        self.qp_data_path = (
+            f"data/{data_source}/{dataset_name}/{data_type}_question_pairs.csv"
+        )
         print(f"Loading data from {self.data_path}")
         self.dataset = DialoglueIntentDataset(self.data_path, intent_label_to_idx)
 
@@ -85,25 +99,48 @@ class DialogueIntentDataLoader:
             collate_fn=lambda b: collate_batch(b, tokenizer),
         )
 
+    def get_qp_dataloader(self, batch_size=4, shuffle=True):
+        self.qp_dataset = QuestionPairDataset(self.qp_data_path)
+
+        return DataLoader(
+            self.qp_dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+        )
+
 
 class DialogueTopDataLoader:
     def __init__(
         self,
         data_source="dialoglue",
-        dataset_name="banking",
+        dataset_name="top",
         data_type="train",
         intent_label_to_idx=None,
     ):
-        self.data_path = f"data/{data_source}/{dataset_name}/{data_type}.csv"
+        self.data_path = f"data/{data_source}/{dataset_name}/{data_type}.txt"
+        self.qp_data_path = (
+            f"data/{data_source}/{dataset_name}/{data_type}_question_pairs.csv"
+        )
+
         print(f"Loading data from {self.data_path}")
-        dataset = DialoglueTOPDataset(self.data_path, intent_label_to_idx)
+        self.dataset = DialoglueTOPDataset(self.data_path, intent_label_to_idx)
 
     def get_dataloader(
         self, batch_size=4, shuffle=True, tokenizer: AutoTokenizer = None
     ):
+
         return DataLoader(
             self.dataset,
             batch_size=batch_size,
             shuffle=shuffle,
             collate_fn=lambda b: collate_batch(b, tokenizer),
+        )
+
+    def get_qp_dataloader(self, batch_size=4, shuffle=True):
+        self.qp_dataset = QuestionPairDataset(self.qp_data_path)
+
+        return DataLoader(
+            self.qp_dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
         )
