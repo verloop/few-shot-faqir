@@ -15,7 +15,7 @@ def to_question_pairs(dataloader, data_path):
     with open(f"{partial_filename}_question_pairs.csv", "w", newline="") as f_output:
         csv_output = csv.DictWriter(
             f_output,
-            fieldnames=["question1", "question2", "is_duplicate"],
+            fieldnames=["sentence1", "sentence1", "is_duplicate"],
             delimiter=",",
         )
         csv_output.writeheader()
@@ -23,16 +23,16 @@ def to_question_pairs(dataloader, data_path):
             if q1["Label"] == q2["Label"]:
                 csv_output.writerow(
                     {
-                        "question1": q1["Text"],
-                        "question2": q2["Text"],
+                        "sentence1": q1["Text"],
+                        "sentence1": q2["Text"],
                         "is_duplicate": 1,
                     }
                 )
             else:
                 csv_output.writerow(
                     {
-                        "question1": q1["Text"],
-                        "question2": q2["Text"],
+                        "sentence1": q1["Text"],
+                        "sentence1": q2["Text"],
                         "is_duplicate": 0,
                     }
                 )

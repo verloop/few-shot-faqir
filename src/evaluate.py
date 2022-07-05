@@ -75,7 +75,30 @@ def evaluate(config):
         pred_labels.append(predicted_labels)
         pred_scores.append(scores[0])
 
-    run_evaluation_metrics(config, test_labels_, pred_labels)
+    # In-scope accuracy for Haptik Data
+    oos_actual, oos_predicted = None, None
+
+    if config["EVALUATION"]["CHECK_OOS_ACCURACY"]:
+        oos_class_name = config["DATASETS"]["OOS_CLASS_NAME"]
+        indx_in_scope = [
+            idx
+            for idx, label in enumerate(test_labels)
+            if label != dl_train.dataset.intent_label_to_idx[oos_class_name]
+        ]
+        indx_out_scope = list(
+            set(list(range(0, len(test_labels)))) - set(indx_in_scope)
+        )
+        oos_predicted = [pred_labels[i] for i in indx_out_scope]
+        oos_actual = [test_labels_[i] for i in indx_out_scope]
+        test_labels = [test_labels[i] for i in indx_in_scope]
+        test_labels_ = [test_labels_[i] for i in indx_in_scope]
+        pred_labels = [pred_labels[i] for i in indx_in_scope]
+        pred_scores = [pred_scores[i] for i in indx_in_scope]
+        test_texts = [test_texts[i] for i in indx_in_scope]
+
+    eval_metrics = run_evaluation_metrics(
+        config, test_labels_, pred_labels, oos_actual, oos_predicted
+    )
 
     # For debugging and checking results. Remove later
 
@@ -93,10 +116,19 @@ def evaluate(config):
             "pred_score": pred_scores,
         }
     )
-    test_predictions.to_csv("test_predictions.csv")
+    if config["EMBEDDINGS"]["EMBEDDING_TYPE"] == "dense":
+        fname = (
+            f"{config['EMBEDDINGS']['MODEL_NAME']}_{config['DATASETS']['DATASET_NAME']}"
+        )
+    else:
+        fname = f"{config['EMBEDDINGS']['SPARSE_EMB_METHOD']}_{config['DATASETS']['DATASET_NAME']}"
+    fname = fname.replace("/", "")
+    test_predictions.to_csv(f"predictions_{fname}.csv")
+    return eval_metrics
 
 
 def evaluate_bm25(config):
+    print("Evaluating BM25")
     nlp = spacy.load("en_core_web_sm")
     tokenizer = nlp.tokenizer
 
@@ -176,7 +208,30 @@ def evaluate_bm25(config):
         test_labels.append(label_batch[0])
         preds.append(most_similar_scores)
 
-    run_evaluation_metrics(config, test_labels_, pred_labels)
+    # In-scope accuracy for Haptik Data
+    oos_actual, oos_predicted = None, None
+
+    if config["EVALUATION"]["CHECK_OOS_ACCURACY"]:
+        oos_class_name = config["DATASETS"]["OOS_CLASS_NAME"]
+        indx_in_scope = [
+            idx
+            for idx, label in enumerate(test_labels)
+            if label != dl_train.dataset.intent_label_to_idx[oos_class_name]
+        ]
+        indx_out_scope = list(
+            set(list(range(0, len(test_labels)))) - set(indx_in_scope)
+        )
+        oos_predicted = [pred_labels[i] for i in indx_out_scope]
+        oos_actual = [test_labels_[i] for i in indx_out_scope]
+        test_labels = [test_labels[i] for i in indx_in_scope]
+        test_labels_ = [test_labels_[i] for i in indx_in_scope]
+        pred_labels = [pred_labels[i] for i in indx_in_scope]
+        pred_scores = [pred_scores[i] for i in indx_in_scope]
+        test_texts = [test_texts[i] for i in indx_in_scope]
+
+    eval_metrics = run_evaluation_metrics(
+        config, test_labels_, pred_labels, oos_actual, oos_predicted
+    )
 
     # For debugging and checking results. Remove later
 
@@ -194,7 +249,8 @@ def evaluate_bm25(config):
             "pred_score": pred_scores,
         }
     )
-    test_predictions.to_csv("test_predictions_bm25.csv")
+    test_predictions.to_csv("predictions_bm25.csv")
+    return eval_metrics
 
 
 if __name__ == "__main__":

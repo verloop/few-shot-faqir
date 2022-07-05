@@ -10,6 +10,7 @@ from src.data.data_reader import (  # isort:skip
     DialoglueTOPDataset,
     HapticDataset,
     QuestionPairDataset,
+    QuestionPairSentBertDataset,
 )
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -72,6 +73,14 @@ class HaptikDataLoader:
             shuffle=shuffle,
         )
 
+    def get_qp_sbert_dataloader(self, batch_size=4, shuffle=True):
+        self.qp_dataset = QuestionPairSentBertDataset(self.qp_data_path)
+        return DataLoader(
+            self.qp_dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+        )
+
 
 class DialogueIntentDataLoader:
     def __init__(
@@ -101,6 +110,15 @@ class DialogueIntentDataLoader:
 
     def get_qp_dataloader(self, batch_size=4, shuffle=True):
         self.qp_dataset = QuestionPairDataset(self.qp_data_path)
+
+        return DataLoader(
+            self.qp_dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+        )
+
+    def get_qp_sbert_dataloader(self, batch_size=4, shuffle=True):
+        self.qp_dataset = QuestionPairSentBertDataset(self.qp_data_path)
 
         return DataLoader(
             self.qp_dataset,
