@@ -15,7 +15,7 @@ def to_question_pairs(dataloader, data_path):
     with open(f"{partial_filename}_question_pairs.csv", "w", newline="") as f_output:
         csv_output = csv.DictWriter(
             f_output,
-            fieldnames=["sentence1", "sentence1", "is_duplicate"],
+            fieldnames=["question1", "question2", "is_duplicate"],
             delimiter=",",
         )
         csv_output.writeheader()
@@ -23,16 +23,16 @@ def to_question_pairs(dataloader, data_path):
             if q1["Label"] == q2["Label"]:
                 csv_output.writerow(
                     {
-                        "sentence1": q1["Text"],
-                        "sentence1": q2["Text"],
+                        "question1": q1["Text"],
+                        "question2": q2["Text"],
                         "is_duplicate": 1,
                     }
                 )
             else:
                 csv_output.writerow(
                     {
-                        "sentence1": q1["Text"],
-                        "sentence1": q2["Text"],
+                        "question1": q1["Text"],
+                        "question2": q2["Text"],
                         "is_duplicate": 0,
                     }
                 )
@@ -77,12 +77,12 @@ if __name__ == "__main__":
         to_question_pairs(dataloader, data_path=dl_instance.data_path)
 
     # dialogue top
-    dl_instance = DialogueTopDataLoader(dataset_name="top", data_type="train")
-    dataloader = dl_instance.get_dataloader()
-    to_question_pairs(dataloader, data_path=dl_instance.data_path)
-    dl_instance = DialogueTopDataLoader(dataset_name="top", data_type="test")
-    dataloader = dl_instance.get_dataloader()
-    to_question_pairs(dataloader, data_path=dl_instance.data_path)
-    dl_instance = DialogueTopDataLoader(dataset_name="top", data_type="eval")
-    dataloader = dl_instance.get_dataloader()
-    to_question_pairs(dataloader, data_path=dl_instance.data_path)
+    # dl_instance = DialogueTopDataLoader(dataset_name="top", data_type="train")
+    # dataloader = dl_instance.get_dataloader()
+    # to_question_pairs(dataloader, data_path=dl_instance.data_path)
+    # dl_instance = DialogueTopDataLoader(dataset_name="top", data_type="test")
+    # dataloader = dl_instance.get_dataloader()
+    # to_question_pairs(dataloader, data_path=dl_instance.data_path)
+    # dl_instance = DialogueTopDataLoader(dataset_name="top", data_type="eval")
+    # dataloader = dl_instance.get_dataloader()
+    # to_question_pairs(dataloader, data_path=dl_instance.data_path)
