@@ -3,6 +3,7 @@ import json
 import os
 
 import pandas as pd
+from sentence_transformers import InputExample
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
@@ -120,6 +121,24 @@ class QuestionPairDataset(Dataset):
 
         for row in df.itertuples(index=False):
             self.examples.append((row.question1, row.question2, row.is_duplicate))
+
+    def __len__(self):
+        return len(self.examples)
+
+    def __getitem__(self, idx):
+        return self.examples[idx]
+
+
+class QuestionPairSentBertDataset(Dataset):
+    def __init__(self, data_path: str):
+        df = pd.read_csv(data_path)
+        self.examples = []
+
+        for row in df.itertuples(index=False):
+            inp_example = InputExample(
+                texts=[row.question1, row.question2], label=float(row.is_duplicate)
+            )
+            self.examples.append(inp_example)
 
     def __len__(self):
         return len(self.examples)
