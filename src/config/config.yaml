@@ -7,13 +7,19 @@ DATASETS:
   OOS_CLASS_NAME: "NO_NODES_DETECTED"
 
 EMBEDDINGS:
-  # Specify embedding type - dense / sparse
-  EMBEDDING_TYPE : "dense"
+  # Set True for bm25/fastext/glove evaluation and False for dense/sparse embedding evaluation
+  USE_BM25_FASTTEXT_GLOVE: True
+  # Select either "BM25" / "FASTTEXT" / 'GLOVE'
+  SELECT_BM25_FASTTEXT_GLOVE: "BM25"
+  FASTTEXT_MODEL_PATH: "models/fasttext_ecom_model_2.bin"
+  GLOVE_MODEL_PATH: "models/glove.6B/glove.6B.300d.txt"
+
+  # Specify embedding type - dense / sparse - Used only if USE_BM25_FASTTEXT_GLOVE is set to False
+  EMBEDDING_TYPE : "sparse"
   # If sparse embedding is used, specify "tfidf-word"/"tfidf-char"/"cv"
   SPARSE_EMB_METHOD: "tfidf-word"
-  # Specify a model name which is implemented via Huggingface - "bert-base-uncased" / "sentence-transformers/all-MiniLM-L6-v2"
-  MODEL_NAME : "sentence-transformers/all-MiniLM-L12-v1"
-  OOS_THRESHOLD : 0.1
+  # Specify a model name which is implemented via Huggingface - "bert-base-uncased" / "models/convbert" (DialoGLUE convbert model) / "sentence-transformers/all-MiniLM-L6-v2"
+  MODEL_NAME : "models/convbert"
 
 
 TRAINING:
@@ -30,8 +36,6 @@ TRAINING:
 
 
 EVALUATION:
-  # Set True for bm25 evaluation and False for dense/sparse embedding evaluation
-  USE_BM25: False
   # Set True/False for the evaluation metrics
   CHECK_SUCCESS_RATE: True
   CHECK_PRECISION : True
@@ -42,5 +46,6 @@ EVALUATION:
   CHECK_F1_MICRO: True
   CHECK_F1_WEIGHTED: True
   CHECK_OOS_ACCURACY : True
+  OOS_THRESHOLD : [0.1,0.2,0.3]
   # Specify k values less than 10
   K_VAL : [1,2,5,10]
