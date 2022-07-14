@@ -1,5 +1,8 @@
 """ Embedding approaches """
 
+import string
+
+import fasttext
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -70,6 +73,62 @@ class DenseEmbeddings:
         sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
 
         return sentence_embeddings.to(device)
+
+
+class FasttextEmbeddings:
+    def __init__(self, model_path):
+        self.model_path = model_path
+        self.load_model()
+
+    def load_model(self):
+        self.emb_model = fasttext.load_model(self.model_path)
+
+    def get_embeddings(self, sents=[]):
+        embeddings = []
+        for sent in sents:
+            sent = sent.replace("\n", "")
+            sent_emb = self.emb_model.get_sentence_vector(sent)
+            embeddings.append(sent_emb)
+        embeddings = np.array(embeddings)
+        return embeddings
+
+
+class GlovetEmbeddings:
+    def __init__(self, model_path):
+        self.model_path = model_path
+        self.load_model()
+
+    def load_model(self):
+        self.vocab_embeddings = {}
+
+        with open(self.model_path, "rt") as fi:
+            full_content = fi.read().strip().split("\n")
+
+        for i in range(len(full_content)):
+            i_word = full_content[i].split(" ")[0]
+            i_embeddings = [float(val) for val in full_content[i].split(" ")[1:]]
+            self.vocab_embeddings[i_word] = i_embeddings
+        self.dim = len(i_embeddings)
+
+    def get_embeddings(self, sents=[]):
+        embeddings = []
+        for sent in sents:
+            sent = sent.lower()
+            sent = sent.replace("\n", "")
+            sent = sent.translate(str.maketrans("", "", string.punctuation))
+            all_word_embs = []
+            words = sent.split(" ")
+            for word in words:
+                if word in self.vocab_embeddings:
+                    all_word_embs.append(self.vocab_embeddings[word])
+            all_word_embs = np.array(all_word_embs)
+            if len(all_word_embs) > 0:
+                sent_emb = np.mean(all_word_embs, axis=0)
+            else:
+                sent_emb = np.zeros(self.dim)
+            embeddings.append(list(sent_emb))
+        embeddings = np.array(embeddings)
+        return embeddings
 
 
 def get_similar(embeddings, query_embedding, top_k=10):

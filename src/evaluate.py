@@ -7,8 +7,14 @@ import spacy
 import yaml
 from transformers import AutoTokenizer
 
-from src.embeddings.dense_embeddings import DenseEmbeddings, get_similar
 from src.embeddings.sparse_embeddings import SparseEmbedding
+
+from src.embeddings.dense_embeddings import (  # isort:skip
+    DenseEmbeddings,
+    FasttextEmbeddings,
+    GlovetEmbeddings,
+    get_similar,
+)
 
 from src.utils.utils import (  # isort:skip
     get_batched_embeddings_dense,
@@ -32,33 +38,65 @@ def evaluate(config):
         data_type="test",
         intent_label_to_idx=dl_train.dataset.intent_label_to_idx,
     )
-
-    if config["EMBEDDINGS"]["EMBEDDING_TYPE"] == "dense":
-        model_name = config["EMBEDDINGS"]["MODEL_NAME"]
-        model_tokenizer = AutoTokenizer.from_pretrained(model_name)
-        dl_train_data = dl_train.get_dataloader(tokenizer=model_tokenizer)
-        dl_test_data = dl_test.get_dataloader(shuffle=False, tokenizer=model_tokenizer)
-        emb_model = DenseEmbeddings(model_name)
-        train_embeddings, train_labels, train_texts = get_batched_embeddings_dense(
-            dl_train_data, emb_model
-        )
-        test_embeddings, test_labels, test_texts = get_batched_embeddings_dense(
-            dl_test_data, emb_model
-        )
-    else:
-        dl_train_data = dl_train.get_dataloader()
-        dl_test_data = dl_test.get_dataloader(shuffle=False)
-        emb_model = SparseEmbedding(
-            sparse_embedding_method=config["EMBEDDINGS"]["SPARSE_EMB_METHOD"]
-        )
-        train_data = get_text_from_dl(dl_train_data)
-        emb_model.train(train_data)
-        train_embeddings, train_labels, train_texts = get_batched_embeddings_sparse(
-            dl_train_data, emb_model
-        )
-        test_embeddings, test_labels, test_texts = get_batched_embeddings_sparse(
-            dl_test_data, emb_model
-        )
+    if config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] == False:
+        if config["EMBEDDINGS"]["EMBEDDING_TYPE"] == "dense":
+            print("Evaluating dense embeddings")
+            model_name = config["EMBEDDINGS"]["MODEL_NAME"]
+            model_tokenizer = AutoTokenizer.from_pretrained(model_name)
+            dl_train_data = dl_train.get_dataloader(tokenizer=model_tokenizer)
+            dl_test_data = dl_test.get_dataloader(
+                shuffle=False, tokenizer=model_tokenizer
+            )
+            emb_model = DenseEmbeddings(model_name)
+            train_embeddings, train_labels, train_texts = get_batched_embeddings_dense(
+                dl_train_data, emb_model
+            )
+            test_embeddings, test_labels, test_texts = get_batched_embeddings_dense(
+                dl_test_data, emb_model
+            )
+        else:
+            print("Evaluating sparse embeddings")
+            dl_train_data = dl_train.get_dataloader()
+            dl_test_data = dl_test.get_dataloader(shuffle=False)
+            emb_model = SparseEmbedding(
+                sparse_embedding_method=config["EMBEDDINGS"]["SPARSE_EMB_METHOD"]
+            )
+            train_data = get_text_from_dl(dl_train_data)
+            emb_model.train(train_data)
+            train_embeddings, train_labels, train_texts = get_batched_embeddings_sparse(
+                dl_train_data, emb_model
+            )
+            test_embeddings, test_labels, test_texts = get_batched_embeddings_sparse(
+                dl_test_data, emb_model
+            )
+    if config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] == True:
+        if config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] == "FASTTEXT":
+            print("Evaluating Fasttext")
+            dl_train_data = dl_train.get_dataloader()
+            dl_test_data = dl_test.get_dataloader(shuffle=False)
+            emb_model = FasttextEmbeddings(
+                model_path=config["EMBEDDINGS"]["FASTTEXT_MODEL_PATH"]
+            )
+            train_embeddings, train_labels, train_texts = get_batched_embeddings_sparse(
+                dl_train_data, emb_model
+            )
+            test_embeddings, test_labels, test_texts = get_batched_embeddings_sparse(
+                dl_test_data, emb_model
+            )
+        if config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] == "GLOVE":
+            print("Evaluating Glove")
+            dl_train_data = dl_train.get_dataloader()
+            dl_test_data = dl_test.get_dataloader(shuffle=False)
+            emb_model = GlovetEmbeddings(
+                model_path=config["EMBEDDINGS"]["GLOVE_MODEL_PATH"]
+            )
+            # train_data = get_text_from_dl(dl_train_data)
+            train_embeddings, train_labels, train_texts = get_batched_embeddings_sparse(
+                dl_train_data, emb_model
+            )
+            test_embeddings, test_labels, test_texts = get_batched_embeddings_sparse(
+                dl_test_data, emb_model
+            )
 
     test_labels_ = [[label] for label in test_labels]
 
@@ -67,37 +105,17 @@ def evaluate(config):
 
     for test_embedding in test_embeddings:
         indx, scores = get_similar(train_embeddings, test_embedding, top_k=10)
-        oos_flag = True if scores[0] < config["EMBEDDINGS"]["OOS_THRESHOLD"] else False
         predicted_labels = train_labels[indx]
-        if oos_flag and config["DATASETS"]["DATASET_SOURCE"] == "haptik":
-            oos_class_name = config["DATASETS"]["OOS_CLASS_NAME"]
-            predicted_labels[0] = dl_train.dataset.intent_label_to_idx[oos_class_name]
         pred_labels.append(predicted_labels)
         pred_scores.append(scores[0])
 
-    # In-scope accuracy for Haptik Data
-    oos_actual, oos_predicted = None, None
-
+    oos_label_indx = None
     if config["EVALUATION"]["CHECK_OOS_ACCURACY"]:
-        oos_class_name = config["DATASETS"]["OOS_CLASS_NAME"]
-        indx_in_scope = [
-            idx
-            for idx, label in enumerate(test_labels)
-            if label != dl_train.dataset.intent_label_to_idx[oos_class_name]
+        oos_label_indx = dl_train.dataset.intent_label_to_idx[
+            config["DATASETS"]["OOS_CLASS_NAME"]
         ]
-        indx_out_scope = list(
-            set(list(range(0, len(test_labels)))) - set(indx_in_scope)
-        )
-        oos_predicted = [pred_labels[i] for i in indx_out_scope]
-        oos_actual = [test_labels_[i] for i in indx_out_scope]
-        test_labels = [test_labels[i] for i in indx_in_scope]
-        test_labels_ = [test_labels_[i] for i in indx_in_scope]
-        pred_labels = [pred_labels[i] for i in indx_in_scope]
-        pred_scores = [pred_scores[i] for i in indx_in_scope]
-        test_texts = [test_texts[i] for i in indx_in_scope]
-
     eval_metrics = run_evaluation_metrics(
-        config, test_labels_, pred_labels, oos_actual, oos_predicted
+        config, test_labels_, pred_labels, pred_scores, oos_label_indx
     )
 
     # For debugging and checking results. Remove later
@@ -192,45 +210,21 @@ def evaluate_bm25(config):
         sims = bm25.get_scores(text)
         most_similar_idxs = np.argsort(sims)[::-1][:top_k]
         most_similar_scores = np.sort(sims)[::-1][:top_k]
-
-        oos_flag = (
-            True
-            if most_similar_scores[0] < config["EMBEDDINGS"]["OOS_THRESHOLD"]
-            else False
-        )
         predicted_labels = train_labels[list(most_similar_idxs)]
-        if oos_flag and config["DATASETS"]["DATASET_SOURCE"] == "haptik":
-            oos_class_name = config["DATASETS"]["OOS_CLASS_NAME"]
-            predicted_labels[0] = dl_train.dataset.intent_label_to_idx[oos_class_name]
         pred_labels.append(predicted_labels)
         pred_scores.append(most_similar_scores[0])
         test_labels_.append(list(label_batch))
         test_labels.append(label_batch[0])
         preds.append(most_similar_scores)
 
-    # In-scope accuracy for Haptik Data
-    oos_actual, oos_predicted = None, None
-
+    oos_label_indx = None
     if config["EVALUATION"]["CHECK_OOS_ACCURACY"]:
-        oos_class_name = config["DATASETS"]["OOS_CLASS_NAME"]
-        indx_in_scope = [
-            idx
-            for idx, label in enumerate(test_labels)
-            if label != dl_train.dataset.intent_label_to_idx[oos_class_name]
+        oos_label_indx = dl_train.dataset.intent_label_to_idx[
+            config["DATASETS"]["OOS_CLASS_NAME"]
         ]
-        indx_out_scope = list(
-            set(list(range(0, len(test_labels)))) - set(indx_in_scope)
-        )
-        oos_predicted = [pred_labels[i] for i in indx_out_scope]
-        oos_actual = [test_labels_[i] for i in indx_out_scope]
-        test_labels = [test_labels[i] for i in indx_in_scope]
-        test_labels_ = [test_labels_[i] for i in indx_in_scope]
-        pred_labels = [pred_labels[i] for i in indx_in_scope]
-        pred_scores = [pred_scores[i] for i in indx_in_scope]
-        test_texts = [test_texts[i] for i in indx_in_scope]
 
     eval_metrics = run_evaluation_metrics(
-        config, test_labels_, pred_labels, oos_actual, oos_predicted
+        config, test_labels_, pred_labels, pred_scores, oos_label_indx
     )
 
     # For debugging and checking results. Remove later
@@ -256,7 +250,10 @@ def evaluate_bm25(config):
 if __name__ == "__main__":
     with open("src/config/config.yaml", "r") as yamlfile:
         config = yaml.load(yamlfile, Loader=yaml.FullLoader)
-    if not config["EVALUATION"]["USE_BM25"]:
+    if (
+        not config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"]
+        and config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] != "BM25"
+    ):
         evaluate(config)
     else:
         evaluate_bm25(config)
