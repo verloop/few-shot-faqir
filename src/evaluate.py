@@ -211,15 +211,15 @@ def evaluate(config):
                 steps_done += 1
                 progress_bar.update(1)
 
-                if steps_done == 2:
-                    break
+                # if steps_done == 2:
+                #     break
 
             pred_probs = torch.cat([torch.stack(pred_prob) for pred_prob in pred_probs])
             labels = torch.cat(labels)
             preds = torch.cat(preds)
-            print(pred_probs)
-            print(labels)
-            print(preds)
+            # print(pred_probs)
+            # print(labels)
+            # print(preds)
 
         oos_label_indx = None
 
