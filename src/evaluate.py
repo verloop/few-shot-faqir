@@ -1,11 +1,15 @@
+import os
 import re
 
 import numpy as np
 import pandas as pd
 import rank_bm25
 import spacy
+import torch
+import torch.nn.functional as F
 import yaml
-from transformers import AutoTokenizer
+from tqdm.auto import tqdm
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from src.embeddings.sparse_embeddings import SparseEmbedding
 
@@ -26,123 +30,204 @@ from src.utils.utils import (  # isort:skip
 
 
 def evaluate(config):
-    dataloader = get_dataloader_class(config)
-    data_source = config["DATASETS"]["DATASET_SOURCE"]
-    dataset_name = config["DATASETS"]["DATASET_NAME"]
-    dl_train = dataloader(
-        data_source=data_source, dataset_name=dataset_name, data_type="train"
-    )
-    dl_test = dataloader(
-        data_source=data_source,
-        dataset_name=dataset_name,
-        data_type="test",
-        intent_label_to_idx=dl_train.dataset.intent_label_to_idx,
-    )
-    if config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] == False:
-        if config["EMBEDDINGS"]["EMBEDDING_TYPE"] == "dense":
-            print("Evaluating dense embeddings")
-            model_name = config["EMBEDDINGS"]["MODEL_NAME"]
-            model_tokenizer = AutoTokenizer.from_pretrained(model_name)
-            dl_train_data = dl_train.get_dataloader(tokenizer=model_tokenizer)
-            dl_test_data = dl_test.get_dataloader(
-                shuffle=False, tokenizer=model_tokenizer
-            )
-            emb_model = DenseEmbeddings(model_name)
-            train_embeddings, train_labels, train_texts = get_batched_embeddings_dense(
-                dl_train_data, emb_model
-            )
-            test_embeddings, test_labels, test_texts = get_batched_embeddings_dense(
-                dl_test_data, emb_model
-            )
-        else:
-            print("Evaluating sparse embeddings")
-            dl_train_data = dl_train.get_dataloader()
-            dl_test_data = dl_test.get_dataloader(shuffle=False)
-            emb_model = SparseEmbedding(
-                sparse_embedding_method=config["EMBEDDINGS"]["SPARSE_EMB_METHOD"]
-            )
-            train_data = get_text_from_dl(dl_train_data)
-            emb_model.train(train_data)
-            train_embeddings, train_labels, train_texts = get_batched_embeddings_sparse(
-                dl_train_data, emb_model
-            )
-            test_embeddings, test_labels, test_texts = get_batched_embeddings_sparse(
-                dl_test_data, emb_model
-            )
-    if config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] == True:
-        if config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] == "FASTTEXT":
-            print("Evaluating Fasttext")
-            dl_train_data = dl_train.get_dataloader()
-            dl_test_data = dl_test.get_dataloader(shuffle=False)
-            emb_model = FasttextEmbeddings(
-                model_path=config["EMBEDDINGS"]["FASTTEXT_MODEL_PATH"]
-            )
-            train_embeddings, train_labels, train_texts = get_batched_embeddings_sparse(
-                dl_train_data, emb_model
-            )
-            test_embeddings, test_labels, test_texts = get_batched_embeddings_sparse(
-                dl_test_data, emb_model
-            )
-        if config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] == "GLOVE":
-            print("Evaluating Glove")
-            dl_train_data = dl_train.get_dataloader()
-            dl_test_data = dl_test.get_dataloader(shuffle=False)
-            emb_model = GlovetEmbeddings(
-                model_path=config["EMBEDDINGS"]["GLOVE_MODEL_PATH"]
-            )
-            # train_data = get_text_from_dl(dl_train_data)
-            train_embeddings, train_labels, train_texts = get_batched_embeddings_sparse(
-                dl_train_data, emb_model
-            )
-            test_embeddings, test_labels, test_texts = get_batched_embeddings_sparse(
-                dl_test_data, emb_model
-            )
 
-    test_labels_ = [[label] for label in test_labels]
-
-    pred_labels = []
-    pred_scores = []
-
-    for test_embedding in test_embeddings:
-        indx, scores = get_similar(train_embeddings, test_embedding, top_k=10)
-        predicted_labels = train_labels[indx]
-        pred_labels.append(predicted_labels)
-        pred_scores.append(scores[0])
-
-    oos_label_indx = None
-    if config["EVALUATION"]["CHECK_OOS_ACCURACY"]:
-        oos_label_indx = dl_train.dataset.intent_label_to_idx[
-            config["DATASETS"]["OOS_CLASS_NAME"]
-        ]
-    eval_metrics = run_evaluation_metrics(
-        config, test_labels_, pred_labels, pred_scores, oos_label_indx
-    )
-
-    # For debugging and checking results. Remove later
-
-    pred_label_names = [
-        dl_train.dataset.intent_idx_to_label[x[0]] for x in list(pred_labels)
-    ]
-    test_label_names = [
-        dl_train.dataset.intent_idx_to_label[x] for x in list(test_labels)
-    ]
-    test_predictions = pd.DataFrame(
-        {
-            "text": test_texts,
-            "actual": test_label_names,
-            "predicted": pred_label_names,
-            "pred_score": pred_scores,
-        }
-    )
-    if config["EMBEDDINGS"]["EMBEDDING_TYPE"] == "dense":
-        fname = (
-            f"{config['EMBEDDINGS']['MODEL_NAME']}_{config['DATASETS']['DATASET_NAME']}"
+    if not config["CROSS_ENCODER_TRAINING"]["USE_CROSS_ENCODER"]:
+        dataloader = get_dataloader_class(config)
+        data_source = config["DATASETS"]["DATASET_SOURCE"]
+        dataset_name = config["DATASETS"]["DATASET_NAME"]
+        dl_train = dataloader(
+            data_source=data_source, dataset_name=dataset_name, data_type="train"
         )
+        dl_test = dataloader(
+            data_source=data_source,
+            dataset_name=dataset_name,
+            data_type="test",
+            intent_label_to_idx=dl_train.dataset.intent_label_to_idx,
+        )
+        if config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] == False:
+            if config["EMBEDDINGS"]["EMBEDDING_TYPE"] == "dense":
+                print("Evaluating dense embeddings")
+                model_name = config["EMBEDDINGS"]["MODEL_NAME"]
+                model_tokenizer = AutoTokenizer.from_pretrained(model_name)
+                dl_train_data = dl_train.get_dataloader(tokenizer=model_tokenizer)
+                dl_test_data = dl_test.get_dataloader(
+                    shuffle=False, tokenizer=model_tokenizer
+                )
+                emb_model = DenseEmbeddings(model_name)
+                (
+                    train_embeddings,
+                    train_labels,
+                    train_texts,
+                ) = get_batched_embeddings_dense(dl_train_data, emb_model)
+                test_embeddings, test_labels, test_texts = get_batched_embeddings_dense(
+                    dl_test_data, emb_model
+                )
+            else:
+                print("Evaluating sparse embeddings")
+                dl_train_data = dl_train.get_dataloader()
+                dl_test_data = dl_test.get_dataloader(shuffle=False)
+                emb_model = SparseEmbedding(
+                    sparse_embedding_method=config["EMBEDDINGS"]["SPARSE_EMB_METHOD"]
+                )
+                train_data = get_text_from_dl(dl_train_data)
+                emb_model.train(train_data)
+                (
+                    train_embeddings,
+                    train_labels,
+                    train_texts,
+                ) = get_batched_embeddings_sparse(dl_train_data, emb_model)
+                (
+                    test_embeddings,
+                    test_labels,
+                    test_texts,
+                ) = get_batched_embeddings_sparse(dl_test_data, emb_model)
+        if config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] == True:
+            if config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] == "FASTTEXT":
+                print("Evaluating Fasttext")
+                dl_train_data = dl_train.get_dataloader()
+                dl_test_data = dl_test.get_dataloader(shuffle=False)
+                emb_model = FasttextEmbeddings(
+                    model_path=config["EMBEDDINGS"]["FASTTEXT_MODEL_PATH"]
+                )
+                (
+                    train_embeddings,
+                    train_labels,
+                    train_texts,
+                ) = get_batched_embeddings_sparse(dl_train_data, emb_model)
+                (
+                    test_embeddings,
+                    test_labels,
+                    test_texts,
+                ) = get_batched_embeddings_sparse(dl_test_data, emb_model)
+            if config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] == "GLOVE":
+                print("Evaluating Glove")
+                dl_train_data = dl_train.get_dataloader()
+                dl_test_data = dl_test.get_dataloader(shuffle=False)
+                emb_model = GlovetEmbeddings(
+                    model_path=config["EMBEDDINGS"]["GLOVE_MODEL_PATH"]
+                )
+                # train_data = get_text_from_dl(dl_train_data)
+                (
+                    train_embeddings,
+                    train_labels,
+                    train_texts,
+                ) = get_batched_embeddings_sparse(dl_train_data, emb_model)
+                (
+                    test_embeddings,
+                    test_labels,
+                    test_texts,
+                ) = get_batched_embeddings_sparse(dl_test_data, emb_model)
+
+        test_labels_ = [[label] for label in test_labels]
+
+        pred_labels = []
+        pred_scores = []
+
+        for test_embedding in test_embeddings:
+            indx, scores = get_similar(train_embeddings, test_embedding, top_k=10)
+            predicted_labels = train_labels[indx]
+            pred_labels.append(predicted_labels)
+            pred_scores.append(scores[0])
+
+        oos_label_indx = None
+        if config["EVALUATION"]["CHECK_OOS_ACCURACY"]:
+            oos_label_indx = dl_train.dataset.intent_label_to_idx[
+                config["DATASETS"]["OOS_CLASS_NAME"]
+            ]
+        eval_metrics = run_evaluation_metrics(
+            config, test_labels_, pred_labels, pred_scores, oos_label_indx
+        )
+
+        # For debugging and checking results. Remove later
+
+        pred_label_names = [
+            dl_train.dataset.intent_idx_to_label[x[0]] for x in list(pred_labels)
+        ]
+        test_label_names = [
+            dl_train.dataset.intent_idx_to_label[x] for x in list(test_labels)
+        ]
+        test_predictions = pd.DataFrame(
+            {
+                "text": test_texts,
+                "actual": test_label_names,
+                "predicted": pred_label_names,
+                "pred_score": pred_scores,
+            }
+        )
+        if config["EMBEDDINGS"]["EMBEDDING_TYPE"] == "dense":
+            fname = f"{config['EMBEDDINGS']['MODEL_NAME']}_{config['DATASETS']['DATASET_NAME']}"
+        else:
+            fname = f"{config['EMBEDDINGS']['SPARSE_EMB_METHOD']}_{config['DATASETS']['DATASET_NAME']}"
+        fname = fname.replace("/", "")
+        test_predictions.to_csv(f"predictions_{fname}.csv")
+        return eval_metrics
+
     else:
-        fname = f"{config['EMBEDDINGS']['SPARSE_EMB_METHOD']}_{config['DATASETS']['DATASET_NAME']}"
-    fname = fname.replace("/", "")
-    test_predictions.to_csv(f"predictions_{fname}.csv")
-    return eval_metrics
+        print("Running evaluation:")
+        dataloader = get_dataloader_class(config)
+        data_source = config["DATASETS"]["DATASET_SOURCE"]
+        dataset_name = config["DATASETS"]["DATASET_NAME"]
+        batch_size = config["CROSS_ENCODER_TRAINING"]["BATCH_SIZE"]
+        dl_class = dataloader(
+            data_source=data_source, dataset_name=dataset_name, data_type="test"
+        )
+        tokenizer = AutoTokenizer.from_pretrained(
+            config["CROSS_ENCODER_TRAINING"]["TOKENIZER_NAME"]
+        )
+        test_dataloader = dl_class.get_qp_dataloader(
+            tokenizer=tokenizer, batch_size=batch_size
+        )
+        model_name = config["EVALUATION"]["CROSS_ENCODER_MODEL_NAME"]
+        model = AutoModelForSequenceClassification.from_pretrained(
+            config["CROSS_ENCODER_TRAINING"]["MODEL_NAME"]
+        )
+        model.to(torch.device("cuda"))
+
+        if os.path.isfile(model_name):
+            checkpoint = torch.load(model_name)
+            model.load_state_dict(checkpoint["model_state_dict"])
+
+        model.eval()
+        with torch.no_grad():
+            preds = []
+            pred_probs = []
+            labels = []
+            total_steps = len(test_dataloader)
+            steps_done = 0
+            progress_bar = tqdm(range(total_steps))
+            for batch in test_dataloader:
+                batch[0]["labels"] = batch[1]
+                batch[0].to(torch.device("cuda"))
+                outputs = model(**batch[0])
+
+                predicted = torch.argmax(outputs.logits, 1)
+                class_predictions = [
+                    F.softmax(output, dim=0) for output in outputs.logits
+                ]
+
+                pred_probs.append(class_predictions)
+                labels.append(batch[0]["labels"])
+                preds.append(predicted)
+                steps_done += 1
+                progress_bar.update(1)
+
+                if steps_done == 2:
+                    break
+
+            pred_probs = torch.cat([torch.stack(pred_prob) for pred_prob in pred_probs])
+            labels = torch.cat(labels)
+            preds = torch.cat(preds)
+            print(pred_probs)
+            print(labels)
+            print(preds)
+
+        oos_label_indx = None
+
+        eval_metrics = run_evaluation_metrics(
+            config, labels, preds, pred_probs[:, 0], oos_label_indx
+        )
+
+        return eval_metrics
 
 
 def evaluate_bm25(config):

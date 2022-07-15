@@ -1,7 +1,7 @@
 import pandas as pd
 import yaml
 
-from src.evaluate import evaluate, evaluate_bm25
+# from src.evaluate import evaluate, evaluate_bm25
 from src.train import train
 
 
@@ -252,6 +252,18 @@ def evaluate_all():
         eval_metrics_pd = parse_eval_metrics(
             eval_metrics,
             method="all-MiniLM-L6-v2_finetuned_20K",
+            data_source=dataset["source"],
+            data_name=dataset["data"],
+            config=config,
+        )
+        evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
+
+        # Evaluate cross encoder model
+        config["CROSS_ENCODER_TRAINING"]["USE_CROSS_ENCODER"] = True
+        eval_metrics = train(config)
+        eval_metrics_pd = parse_eval_metrics(
+            eval_metrics,
+            method="cross_encoder_bert_finetuned_20K",
             data_source=dataset["source"],
             data_name=dataset["data"],
             config=config,

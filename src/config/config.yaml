@@ -34,6 +34,17 @@ TRAINING:
   LEARNING_RATE: 2e-5
   SCHEDULER: 'WarmupLinear'
 
+CROSS_ENCODER_TRAINING:
+  USE_CROSS_ENCODER : False
+  NUM_ITERATIONS : 20000
+  TRAIN_OUTPUT_DIR: "./models/"
+  MODEL_NAME : "bert-base-uncased"
+  TOKENIZER_NAME: "bert-base-uncased"
+  # Specify model layer to unfreeze - 11,5 etc
+  BERT_LAYERS_TO_UNFREEZE : 11
+  BATCH_SIZE : 16
+  LEARNING_RATE: 2e-5
+  SCHEDULER: 'linear'
 
 EVALUATION:
   # Set True/False for the evaluation metrics
@@ -46,6 +57,7 @@ EVALUATION:
   CHECK_F1_MICRO: True
   CHECK_F1_WEIGHTED: True
   CHECK_OOS_ACCURACY : True
+  CROSS_ENCODER_MODEL_NAME: "./models/cross_encoder.pt"
   OOS_THRESHOLD : [0.1,0.2,0.3]
   # Specify k values less than 10
   K_VAL : [1,2,5,10]
