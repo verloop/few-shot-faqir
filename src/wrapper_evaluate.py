@@ -1,7 +1,7 @@
 import pandas as pd
 import yaml
 
-# from src.evaluate import evaluate, evaluate_bm25
+from src.evaluate import evaluate, evaluate_bm25
 from src.train import train
 
 
