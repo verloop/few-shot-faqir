@@ -30,20 +30,20 @@ from src.utils.utils import (  # isort:skip
 
 
 def evaluate(config):
-
-    if not config["CROSS_ENCODER_TRAINING"]["USE_CROSS_ENCODER"]:
-        dataloader = get_dataloader_class(config)
-        data_source = config["DATASETS"]["DATASET_SOURCE"]
-        dataset_name = config["DATASETS"]["DATASET_NAME"]
-        dl_train = dataloader(
-            data_source=data_source, dataset_name=dataset_name, data_type="train"
-        )
-        dl_test = dataloader(
-            data_source=data_source,
-            dataset_name=dataset_name,
-            data_type="test",
-            intent_label_to_idx=dl_train.dataset.intent_label_to_idx,
-        )
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    dataloader = get_dataloader_class(config)
+    data_source = config["DATASETS"]["DATASET_SOURCE"]
+    dataset_name = config["DATASETS"]["DATASET_NAME"]
+    dl_train = dataloader(
+        data_source=data_source, dataset_name=dataset_name, data_type="train"
+    )
+    dl_test = dataloader(
+        data_source=data_source,
+        dataset_name=dataset_name,
+        data_type="test",
+        intent_label_to_idx=dl_train.dataset.intent_label_to_idx,
+    )
+    if config["EVALUATION"]["EVALUATION_METHOD"] == "EMBEDDINGS":
         if config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] == False:
             if config["EMBEDDINGS"]["EMBEDDING_TYPE"] == "dense":
                 print("Evaluating dense embeddings")
@@ -53,7 +53,7 @@ def evaluate(config):
                 dl_test_data = dl_test.get_dataloader(
                     shuffle=False, tokenizer=model_tokenizer
                 )
-                emb_model = DenseEmbeddings(model_name)
+                emb_model = DenseEmbeddings(model_name, device=device)
                 (
                     train_embeddings,
                     train_labels,
@@ -81,6 +81,7 @@ def evaluate(config):
                     test_labels,
                     test_texts,
                 ) = get_batched_embeddings_sparse(dl_test_data, emb_model)
+
         if config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] == True:
             if config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] == "FASTTEXT":
                 print("Evaluating Fasttext")
@@ -106,7 +107,6 @@ def evaluate(config):
                 emb_model = GlovetEmbeddings(
                     model_path=config["EMBEDDINGS"]["GLOVE_MODEL_PATH"]
                 )
-                # train_data = get_text_from_dl(dl_train_data)
                 (
                     train_embeddings,
                     train_labels,
@@ -162,26 +162,22 @@ def evaluate(config):
         test_predictions.to_csv(f"predictions_{fname}.csv")
         return eval_metrics
 
-    else:
-        print("Running evaluation:")
+    if config["EVALUATION"]["EVALUATION_METHOD"] == "CROSS_ENCODER":
+        print("Running evaluation with cross encoders")
         dataloader = get_dataloader_class(config)
         data_source = config["DATASETS"]["DATASET_SOURCE"]
         dataset_name = config["DATASETS"]["DATASET_NAME"]
-        batch_size = config["CROSS_ENCODER_TRAINING"]["BATCH_SIZE"]
-        dl_class = dataloader(
-            data_source=data_source, dataset_name=dataset_name, data_type="test"
-        )
-        tokenizer = AutoTokenizer.from_pretrained(
-            config["CROSS_ENCODER_TRAINING"]["TOKENIZER_NAME"]
-        )
-        test_dataloader = dl_class.get_qp_dataloader(
+        batch_size = config["TRAINING"]["BATCH_SIZE"]
+        tokenizer = AutoTokenizer.from_pretrained(config["TRAINING"]["TOKENIZER_NAME"])
+        test_dataloader = dl_test.get_crossencoder_test_dataloader(
             tokenizer=tokenizer, batch_size=batch_size
         )
-        model_name = config["EVALUATION"]["CROSS_ENCODER_MODEL_NAME"]
-        model = AutoModelForSequenceClassification.from_pretrained(
-            config["CROSS_ENCODER_TRAINING"]["MODEL_NAME"]
-        )
-        model.to(torch.device("cuda"))
+
+        model_name = config["TRAINING"][
+            "TOKENIZER_NAME"
+        ]  # loading the base model using the same as tokenizer
+        model = AutoModelForSequenceClassification.from_pretrained(model_name)
+        model.to(torch.device(device))
 
         if os.path.isfile(model_name):
             checkpoint = torch.load(model_name)
@@ -189,42 +185,59 @@ def evaluate(config):
 
         model.eval()
         with torch.no_grad():
-            preds = []
             pred_probs = []
             labels = []
             total_steps = len(test_dataloader)
             steps_done = 0
             progress_bar = tqdm(range(total_steps))
+            idx = []
             for batch in test_dataloader:
-                batch[0]["labels"] = batch[1]
-                batch[0].to(torch.device("cuda"))
+                batch[0].to(torch.device(device))
                 outputs = model(**batch[0])
-
-                predicted = torch.argmax(outputs.logits, 1)
                 class_predictions = [
                     F.softmax(output, dim=0) for output in outputs.logits
                 ]
+                # for getting probability for positive class 1
+                pred_probs += [i.detach().cpu().tolist()[1] for i in class_predictions]
+                labels += batch[1][0].detach().cpu().tolist()
+                idx += batch[1][1].detach().cpu().tolist()
 
-                pred_probs.append(class_predictions)
-                labels.append(batch[0]["labels"])
-                preds.append(predicted)
                 steps_done += 1
                 progress_bar.update(1)
 
                 # if steps_done == 2:
                 #     break
 
-            pred_probs = torch.cat([torch.stack(pred_prob) for pred_prob in pred_probs])
-            labels = torch.cat(labels)
-            preds = torch.cat(preds)
-            # print(pred_probs)
-            # print(labels)
-            # print(preds)
+            idx = np.array(idx)
+            pred_probs = np.array(pred_probs)
+            labels = np.array(labels)
+            true_vals = []
+            predicted = []
+            pred_scores = []
+            for i in set(idx):
+                matched = np.where(idx == i)[0]
+                pred_probs_ = pred_probs[matched]
+                labels_ = labels[matched]
+                pred_prob_argsorted = np.argsort(pred_probs_)[::-1][:10]
+                pred_probs_sorted = pred_probs_[pred_prob_argsorted]
+                labels_sorted = labels_[pred_prob_argsorted]
+                # Count only the first position where the correct answer appears - Can be done if needed
+                # Checking oos
+                if len(set(labels_)) == 1 and list(set(labels_))[0] == 0:
+                    # No questions were matching which means OOS - label of 2
+                    true_vals.append([2] * len(pred_prob_argsorted))
+                else:
+                    true_vals.append([1] * len(pred_prob_argsorted))
+                pred_scores.append(list(pred_probs_sorted)[0])
+                predicted.append(list(labels_sorted))
 
-        oos_label_indx = None
+        # print(true_vals)
+        # print(pred_scores)
+        # print(predicted)
+        oos_label_indx = 2  # Giving the value of 2 for OOS labels in Similarity method
 
         eval_metrics = run_evaluation_metrics(
-            config, labels, preds, pred_probs[:, 0], oos_label_indx
+            config, true_vals, predicted, pred_scores, oos_label_indx
         )
 
         return eval_metrics
@@ -335,8 +348,8 @@ def evaluate_bm25(config):
 if __name__ == "__main__":
     with open("src/config/config.yaml", "r") as yamlfile:
         config = yaml.load(yamlfile, Loader=yaml.FullLoader)
-    if (
-        not config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"]
+    if not config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] or (
+        config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"]
         and config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] != "BM25"
     ):
         evaluate(config)
