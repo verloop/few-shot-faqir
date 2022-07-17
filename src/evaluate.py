@@ -49,8 +49,8 @@ def evaluate(config):
                 print("Evaluating dense embeddings")
                 model_name = config["EMBEDDINGS"]["MODEL_NAME"]
                 model_tokenizer = AutoTokenizer.from_pretrained(model_name)
-                dl_train_data = dl_train.get_dataloader(tokenizer=model_tokenizer)
-                dl_test_data = dl_test.get_dataloader(
+                dl_train_data, _ = dl_train.get_dataloader(tokenizer=model_tokenizer)
+                dl_test_data, _ = dl_test.get_dataloader(
                     shuffle=False, tokenizer=model_tokenizer
                 )
                 emb_model = DenseEmbeddings(model_name, device=device)
@@ -64,8 +64,8 @@ def evaluate(config):
                 )
             else:
                 print("Evaluating sparse embeddings")
-                dl_train_data = dl_train.get_dataloader()
-                dl_test_data = dl_test.get_dataloader(shuffle=False)
+                dl_train_data, _ = dl_train.get_dataloader()
+                dl_test_data, _ = dl_test.get_dataloader(shuffle=False)
                 emb_model = SparseEmbedding(
                     sparse_embedding_method=config["EMBEDDINGS"]["SPARSE_EMB_METHOD"]
                 )
@@ -85,8 +85,8 @@ def evaluate(config):
         if config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] == True:
             if config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] == "FASTTEXT":
                 print("Evaluating Fasttext")
-                dl_train_data = dl_train.get_dataloader()
-                dl_test_data = dl_test.get_dataloader(shuffle=False)
+                dl_train_data, _ = dl_train.get_dataloader()
+                dl_test_data, _ = dl_test.get_dataloader(shuffle=False)
                 emb_model = FasttextEmbeddings(
                     model_path=config["EMBEDDINGS"]["FASTTEXT_MODEL_PATH"]
                 )
@@ -102,8 +102,8 @@ def evaluate(config):
                 ) = get_batched_embeddings_sparse(dl_test_data, emb_model)
             if config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] == "GLOVE":
                 print("Evaluating Glove")
-                dl_train_data = dl_train.get_dataloader()
-                dl_test_data = dl_test.get_dataloader(shuffle=False)
+                dl_train_data, _ = dl_train.get_dataloader()
+                dl_test_data, _ = dl_test.get_dataloader(shuffle=False)
                 emb_model = GlovetEmbeddings(
                     model_path=config["EMBEDDINGS"]["GLOVE_MODEL_PATH"]
                 )
@@ -173,10 +173,11 @@ def evaluate(config):
             tokenizer=tokenizer, batch_size=batch_size
         )
 
-        model_name = config["TRAINING"][
+        base_model_name = config["TRAINING"][
             "TOKENIZER_NAME"
         ]  # loading the base model using the same as tokenizer
-        model = AutoModelForSequenceClassification.from_pretrained(model_name)
+        model_name = config["TRAINING"]["MODEL_NAME"]
+        model = AutoModelForSequenceClassification.from_pretrained(base_model_name)
         model.to(torch.device(device))
 
         if os.path.isfile(model_name):
@@ -194,17 +195,13 @@ def evaluate(config):
             for batch in test_dataloader:
                 batch[0].to(torch.device(device))
                 outputs = model(**batch[0])
-                class_predictions = [
-                    F.softmax(output, dim=0) for output in outputs.logits
-                ]
+                class_predictions = F.softmax(outputs.logits, dim=1)
                 # for getting probability for positive class 1
                 pred_probs += [i.detach().cpu().tolist()[1] for i in class_predictions]
-                labels += batch[1][0].detach().cpu().tolist()
-                idx += batch[1][1].detach().cpu().tolist()
-
+                labels += batch[1][:, 0].detach().cpu().tolist()
+                idx += batch[1][:, 1].detach().cpu().tolist()
                 steps_done += 1
                 progress_bar.update(1)
-
                 # if steps_done == 2:
                 #     break
 
@@ -215,12 +212,21 @@ def evaluate(config):
             predicted = []
             pred_scores = []
             for i in set(idx):
+                # indx is set for a test set record.Get the labels & scores for each test record
+                # print("idx",i)
                 matched = np.where(idx == i)[0]
                 pred_probs_ = pred_probs[matched]
+                # print("pred_probs_")
+                # print(pred_probs_)
                 labels_ = labels[matched]
+                # print("labels_")
+                # print(labels_)
                 pred_prob_argsorted = np.argsort(pred_probs_)[::-1][:10]
                 pred_probs_sorted = pred_probs_[pred_prob_argsorted]
+                # print("pred_probs_sorted")
+                # print(pred_probs_sorted)
                 labels_sorted = labels_[pred_prob_argsorted]
+                # print(labels_sorted)
                 # Count only the first position where the correct answer appears - Can be done if needed
                 # Checking oos
                 if len(set(labels_)) == 1 and list(set(labels_))[0] == 0:
@@ -228,7 +234,9 @@ def evaluate(config):
                     true_vals.append([2] * len(pred_prob_argsorted))
                 else:
                     true_vals.append([1] * len(pred_prob_argsorted))
-                pred_scores.append(list(pred_probs_sorted)[0])
+                pred_scores.append(
+                    list(pred_probs_sorted)[0]
+                )  # Get only the first score for marking it as OOS
                 predicted.append(list(labels_sorted))
 
         # print(true_vals)
@@ -275,8 +283,8 @@ def evaluate_bm25(config):
         data_type="test",
         intent_label_to_idx=dl_train.dataset.intent_label_to_idx,
     )
-    dl_train_data = dl_train.get_dataloader(batch_size=100, shuffle=False)
-    dl_test_data = dl_test.get_dataloader(batch_size=1, shuffle=False)
+    dl_train_data, _ = dl_train.get_dataloader(batch_size=100, shuffle=False)
+    dl_test_data, _ = dl_test.get_dataloader(batch_size=1, shuffle=False)
 
     # Get train and test labels
     train_labels = []

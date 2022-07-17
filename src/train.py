@@ -19,9 +19,11 @@ def train(config):
 
     if config["TRAINING"]["MODEL_TYPE"] == "BI_ENCODER":
         print("Training and evaluation with Bi-Encoder")
-        trainer = BiEncoderModelTrainer(config["TRAINING"]["MODEL_NAME"])
-        train_dataloader, _ = dl_train.get_qp_sbert_dataloader(batch_size=batch_size)
-        model_folder = trainer.train(train_dataloader, config)
+        trainer = BiEncoderModelTrainer(config)
+        train_dataloader, val_dataloader = dl_train.get_qp_sbert_dataloader(
+            batch_size=batch_size, val_split_pct=0.2
+        )
+        model_folder = trainer.train(train_dataloader, val_dataloader)
         config["EMBEDDINGS"]["MODEL_NAME"] = model_folder
         config["EVALUATION"]["EVALUATION_METHOD"] == "EMBEDDINGS"
         eval_metrics = evaluate(config)
@@ -33,6 +35,7 @@ def train(config):
         train_dataloader, val_dataloader = dl_train.get_qp_dataloader(
             tokenizer=tokenizer, batch_size=batch_size, val_split_pct=0.2
         )
+        val_dataloader = None
         trainer = CrossEncoderModelTrainer(config)
         model_folder = trainer.train(train_dataloader, val_dataloader)
         print(model_folder)

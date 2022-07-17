@@ -230,7 +230,7 @@ def evaluate_all():
         config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
         config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
         config["EMBEDDINGS"]["MODEL_NAME"] = "sentence-transformers/all-MiniLM-L6-v2"
-        config["TRAINING"]["SENTBERT_LAYERS_TO_UNFREEZE"] = [5]
+        config["TRAINING"]["LAYERS_TO_UNFREEZE"] = [5]
         config["TRAINING"]["NUM_ITERATIONS"] = 10000
         eval_metrics = train(config)
         eval_metrics_pd = parse_eval_metrics(

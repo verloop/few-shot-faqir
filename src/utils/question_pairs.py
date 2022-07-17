@@ -1,9 +1,10 @@
 import csv
 import itertools
 
+import pandas as pd
+
 from src.data.dataloaders import (  # isort:skip
     DialogueIntentDataLoader,
-    DialogueTopDataLoader,
     HaptikDataLoader,
 )
 
@@ -20,7 +21,7 @@ def test_question_pairs(train_dataloader, test_dataloader, data_path):
             delimiter=",",
         )
         csv_output.writeheader()
-        for q_test, q_train in list(itertools.product(test_data, train_data))[:10000]:
+        for q_test, q_train in list(itertools.product(test_data, train_data)):
             if q_test["Label"] == q_train["Label"]:
                 csv_output.writerow(
                     {
@@ -46,6 +47,9 @@ def test_question_pairs(train_dataloader, test_dataloader, data_path):
 def to_question_pairs(dataloader, data_path):
     # Will cause memory overflow for large dataset
     data = dataloader.dataset[:]
+    texts = [each["Text"] for each in data]
+    labels = [each["Label"] for each in data]
+    df_data = pd.DataFrame({"Text": texts, "Label": labels})
     partial_filename = data_path.split(".")[0]
     with open(f"{partial_filename}_question_pairs.csv", "w", newline="") as f_output:
         csv_output = csv.DictWriter(
@@ -54,24 +58,36 @@ def to_question_pairs(dataloader, data_path):
             delimiter=",",
         )
         csv_output.writeheader()
-        for q1, q2 in itertools.combinations(data, 2):
-            if q1["Label"] == q2["Label"]:
-                csv_output.writerow(
-                    {
-                        "question1": q1["Text"],
-                        "question2": q2["Text"],
-                        "label": 1,
-                    }
-                )
-            else:
-                csv_output.writerow(
-                    {
-                        "question1": q1["Text"],
-                        "question2": q2["Text"],
-                        "label": 0,
-                    }
-                )
-
+        labels = df_data["Label"].unique()
+        for label in labels:
+            df_data_label = df_data[df_data["Label"] == label]
+            data_label = [
+                {"Text": x[1][0], "Label": x[1][1]} for x in df_data_label.iterrows()
+            ]
+            pos = 0
+            for q1, q2 in itertools.combinations(data_label, 2):
+                if q1["Label"] == q2["Label"]:
+                    csv_output.writerow(
+                        {
+                            "question1": q1["Text"],
+                            "question2": q2["Text"],
+                            "label": 1,
+                        }
+                    )
+                    pos = pos + 1
+            neg = 0
+            for q1, q2 in itertools.combinations(data, 2):
+                if q1["Label"] != q2["Label"]:
+                    csv_output.writerow(
+                        {
+                            "question1": q1["Text"],
+                            "question2": q2["Text"],
+                            "label": 0,
+                        }
+                    )
+                    neg += 1
+                if neg == pos:
+                    break
         f_output.close()
 
 
@@ -81,51 +97,44 @@ if __name__ == "__main__":
     dataset_names = ["curekart", "powerplay11", "sofmattress"]
     for dataset_name in dataset_names:
         # haptik train
-        dl_instance = HaptikDataLoader(dataset_name=dataset_name, data_type="train")
-        train_dataloader = dl_instance.get_dataloader()
-        # to_question_pairs(train_dataloader, data_path=dl_instance.data_path)
+        dl_train = HaptikDataLoader(dataset_name=dataset_name, data_type="train")
+        train_dataloader, _ = dl_train.get_dataloader()
+        to_question_pairs(train_dataloader, data_path=dl_train.data_path)
         # haptik test
-        dl_instance = HaptikDataLoader(
+        dl_test = HaptikDataLoader(
             dataset_name=dataset_name,
             data_type="test",
             intent_label_to_idx=train_dataloader.dataset.intent_label_to_idx,
         )
-        test_dataloader = dl_instance.get_dataloader()
+        test_dataloader, _ = dl_test.get_dataloader()
         test_question_pairs(
             train_dataloader=train_dataloader,
             test_dataloader=test_dataloader,
-            data_path=dl_instance.data_path,
+            data_path=dl_test.data_path,
         )
 
-    # # dialogue intent
-    # dataset_names = ["banking", "clinc", "hwu"]
-    # for dataset_name in dataset_names:
-    #     # dialogue intent train
-    #     dl_instance = DialogueIntentDataLoader(
-    #         dataset_name=dataset_name, data_type="train"
-    #     )
-    #     train_dataloader = dl_instance.get_dataloader()
-    #     to_question_pairs(train_dataloader, data_path=dl_instance.data_path)
-    #     # dialogue intent test
-    #     dl_instance = DialogueIntentDataLoader(
-    #         dataset_name=dataset_name, data_type="test"
-    #     )
-    #     test_dataloader = dl_instance.get_dataloader()
-    #     test_question_pairs(train_dataloader=train_dataloader,test_dataloader=test_dataloader,data_path=dl_instance.data_path)
-    #     # dialogue intent val
-    #     dl_instance = DialogueIntentDataLoader(
-    #         dataset_name=dataset_name, data_type="val"
-    #     )
-    #     val_dataloader = dl_instance.get_dataloader()
-    #     test_question_pairs(train_dataloader=train_dataloader,test_dataloader=val_dataloader,data_path=dl_instance.data_path)
-
-    # dialogue top
-    # dl_instance = DialogueTopDataLoader(dataset_name="top", data_type="train")
-    # dataloader = dl_instance.get_dataloader()
-    # to_question_pairs(dataloader, data_path=dl_instance.data_path)
-    # dl_instance = DialogueTopDataLoader(dataset_name="top", data_type="test")
-    # dataloader = dl_instance.get_dataloader()
-    # to_question_pairs(dataloader, data_path=dl_instance.data_path)
-    # dl_instance = DialogueTopDataLoader(dataset_name="top", data_type="eval")
-    # dataloader = dl_instance.get_dataloader()
-    # to_question_pairs(dataloader, data_path=dl_instance.data_path)
+    # dialogue intent
+    dataset_names = ["banking", "clinc", "hwu"]
+    for dataset_name in dataset_names:
+        # dialogue intent train
+        dl_train = DialogueIntentDataLoader(
+            dataset_name=dataset_name, data_type="train"
+        )
+        train_dataloader, _ = dl_train.get_dataloader()
+        to_question_pairs(train_dataloader, data_path=dl_train.data_path)
+        # dialogue intent test
+        dl_test = DialogueIntentDataLoader(dataset_name=dataset_name, data_type="test")
+        test_dataloader, _ = dl_test.get_dataloader()
+        test_question_pairs(
+            train_dataloader=train_dataloader,
+            test_dataloader=test_dataloader,
+            data_path=dl_test.data_path,
+        )
+        # dialogue intent val
+        dl_val = DialogueIntentDataLoader(dataset_name=dataset_name, data_type="val")
+        val_dataloader, _ = dl_val.get_dataloader()
+        test_question_pairs(
+            train_dataloader=train_dataloader,
+            test_dataloader=val_dataloader,
+            data_path=dl_val.data_path,
+        )

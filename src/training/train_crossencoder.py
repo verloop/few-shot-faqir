@@ -11,7 +11,6 @@ from src.utils.utils import save_yaml
 from transformers import (  # isort:skip
     AdamW,
     AutoModelForSequenceClassification,
-    AutoTokenizer,
     get_scheduler,
 )
 
@@ -20,7 +19,6 @@ class CrossEncoderModelTrainer:
     def __init__(self, cfg, device="cuda"):
         self.cfg = cfg
         self.model_name_or_path = self.cfg["TRAINING"]["MODEL_NAME"]
-        self.tokenizer_name_or_path = self.cfg["TRAINING"]["TOKENIZER_NAME"]
         self.device_str = device
         self.device = torch.device(device)
         self.model = AutoModelForSequenceClassification.from_pretrained(
@@ -115,10 +113,9 @@ class CrossEncoderModelTrainer:
                     # print(f"training_accuracy: {running_correct/100}")
                     running_loss = 0.0
                     running_correct = 0
-
             if steps_done >= num_training_steps:
                 break
-
+        if self.val_dl:
             with torch.no_grad():
                 labels = []
                 preds = []
@@ -131,7 +128,7 @@ class CrossEncoderModelTrainer:
 
                 for batch in self.val_dl:
                     batch[0]["labels"] = batch[1]
-                    batch[1].to(torch.device(self.device_str))
+                    batch[0].to(torch.device(self.device_str))
                     outputs = self.model(**batch[0])
 
                     val_running_loss += outputs.loss.item()

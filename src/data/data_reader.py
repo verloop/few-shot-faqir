@@ -130,6 +130,11 @@ class QuestionPairDataset(Dataset):
 
 
 class QuestionPairTestTrainDataset(Dataset):
+    """
+    Gets question pairs of test and train combinations along with test indx and the label - 1/0
+    If the train label and test matches , its 1 which will only be for the questions belonging to the true label
+    """
+
     def __init__(self, data_path: str):
         df = pd.read_csv(data_path)
 

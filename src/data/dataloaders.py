@@ -86,14 +86,38 @@ class HaptikDataLoader:
         return train_dataset, val_dataset
 
     def get_dataloader(
-        self, batch_size=4, shuffle=True, tokenizer: AutoTokenizer = None
+        self,
+        batch_size=4,
+        shuffle=True,
+        tokenizer: AutoTokenizer = None,
+        val_split_pct=0,
     ):
-        return DataLoader(
-            self.dataset,
-            batch_size=batch_size,
-            shuffle=shuffle,
-            collate_fn=lambda b: collate_batch(b, tokenizer),
-        )
+        if val_split_pct == 0:
+            train_dataloader = DataLoader(
+                self.dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                collate_fn=lambda b: collate_batch(b, tokenizer),
+            )
+            val_dataloader = None
+            return train_dataloader, val_dataloader
+        else:
+            train_dataset, val_dataset = self.train_test_split(
+                self.dataset, val_split_pct
+            )
+            train_dataloader = DataLoader(
+                train_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                collate_fn=lambda b: collate_batch(b, tokenizer),
+            )
+            val_dataloader = DataLoader(
+                val_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                collate_fn=lambda b: collate_batch(b, tokenizer),
+            )
+            return train_dataloader, val_dataloader
 
     def get_qp_dataloader(
         self,
@@ -105,15 +129,14 @@ class HaptikDataLoader:
     ):
         self.qp_dataset = QuestionPairDataset(self.qp_data_path)
         if val_split_pct == 0:
-            return (
-                DataLoader(
-                    self.qp_dataset,
-                    batch_size=batch_size,
-                    shuffle=shuffle,
-                    collate_fn=lambda b: collate_batch(b, tokenizer, is_qp),
-                ),
-                None,
+            train_dataloader = DataLoader(
+                self.qp_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                collate_fn=lambda b: collate_batch(b, tokenizer, is_qp),
             )
+            val_dataloader = None
+            return train_dataloader, val_dataloader
         else:
             train_dataset, val_dataset = self.train_test_split(
                 self.qp_dataset, val_split_pct
@@ -135,14 +158,13 @@ class HaptikDataLoader:
     def get_qp_sbert_dataloader(self, batch_size=4, shuffle=True, val_split_pct=0):
         self.qp_dataset = QuestionPairSentBertDataset(self.qp_data_path)
         if val_split_pct == 0:
-            return (
-                DataLoader(
-                    self.qp_dataset,
-                    batch_size=batch_size,
-                    shuffle=shuffle,
-                ),
-                None,
+            train_dataloader = DataLoader(
+                self.qp_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
             )
+            val_dataloader = None
+            return train_dataloader, val_dataloader
         else:
             train_dataset, val_dataset = self.train_test_split(
                 self.qp_dataset, val_split_pct
@@ -186,33 +208,121 @@ class DialogueIntentDataLoader:
         print(f"Loading data from {self.data_path}")
         self.dataset = DialoglueIntentDataset(self.data_path, intent_label_to_idx)
 
+    def train_test_split(self, dataset, val_split_pct):
+        train_split = int((1 - val_split_pct) * len(dataset))
+        val_split = len(dataset) - train_split
+        train_dataset, val_dataset = random_split(
+            dataset,
+            [train_split, val_split],
+            generator=torch.Generator().manual_seed(2022),
+        )
+        return train_dataset, val_dataset
+
     def get_dataloader(
-        self, batch_size=4, shuffle=True, tokenizer: AutoTokenizer = None
+        self,
+        batch_size=4,
+        shuffle=True,
+        tokenizer: AutoTokenizer = None,
+        val_split_pct=0,
     ):
+        if val_split_pct == 0:
+            train_dataloader = DataLoader(
+                self.dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                collate_fn=lambda b: collate_batch(b, tokenizer),
+            )
+            val_dataloader = None
+            return train_dataloader, val_dataloader
+        else:
+            train_dataset, val_dataset = self.train_test_split(
+                self.dataset, val_split_pct
+            )
+            train_dataloader = DataLoader(
+                train_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                collate_fn=lambda b: collate_batch(b, tokenizer),
+            )
+            val_dataloader = DataLoader(
+                val_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                collate_fn=lambda b: collate_batch(b, tokenizer),
+            )
+            return train_dataloader, val_dataloader
 
-        return DataLoader(
-            self.dataset,
-            batch_size=batch_size,
-            shuffle=shuffle,
-            collate_fn=lambda b: collate_batch(b, tokenizer),
-        )
-
-    def get_qp_dataloader(self, batch_size=4, shuffle=True):
+    def get_qp_dataloader(
+        self,
+        batch_size=16,
+        shuffle=True,
+        tokenizer: AutoTokenizer = None,
+        is_qp=True,
+        val_split_pct=0,
+    ):
         self.qp_dataset = QuestionPairDataset(self.qp_data_path)
+        if val_split_pct == 0:
+            train_dataloader = DataLoader(
+                self.qp_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                collate_fn=lambda b: collate_batch(b, tokenizer, is_qp),
+            )
+            val_dataloader = None
+            return train_dataloader, val_dataloader
+        else:
+            train_dataset, val_dataset = self.train_test_split(
+                self.qp_dataset, val_split_pct
+            )
+            train_dataloader = DataLoader(
+                train_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                collate_fn=lambda b: collate_batch(b, tokenizer, is_qp),
+            )
+            val_dataloader = DataLoader(
+                val_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                collate_fn=lambda b: collate_batch(b, tokenizer, is_qp),
+            )
+            return train_dataloader, val_dataloader
 
-        return DataLoader(
-            self.qp_dataset,
-            batch_size=batch_size,
-            shuffle=shuffle,
-        )
-
-    def get_qp_sbert_dataloader(self, batch_size=4, shuffle=True):
+    def get_qp_sbert_dataloader(self, batch_size=4, shuffle=True, val_split_pct=0):
         self.qp_dataset = QuestionPairSentBertDataset(self.qp_data_path)
+        if val_split_pct == 0:
+            train_dataloader = DataLoader(
+                self.qp_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+            )
+            val_dataloader = None
+            return train_dataloader, val_dataloader
+        else:
+            train_dataset, val_dataset = self.train_test_split(
+                self.qp_dataset, val_split_pct
+            )
+            train_dataloader = DataLoader(
+                train_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+            )
+            val_dataloader = DataLoader(
+                val_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+            )
+            return train_dataloader, val_dataloader
 
+    def get_crossencoder_test_dataloader(
+        self, tokenizer: AutoTokenizer = None, is_qp=True, batch_size=4, shuffle=False
+    ):
+        self.qp_test_train_dataset = QuestionPairTestTrainDataset(self.qp_data_path)
         return DataLoader(
-            self.qp_dataset,
+            self.qp_test_train_dataset,
             batch_size=batch_size,
             shuffle=shuffle,
+            collate_fn=lambda b: collate_batch(b, tokenizer, is_qp),
         )
 
 
