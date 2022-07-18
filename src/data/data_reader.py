@@ -120,7 +120,28 @@ class QuestionPairDataset(Dataset):
         self.examples = []
 
         for row in df.itertuples(index=False):
-            self.examples.append((row.question1, row.question2, row.is_duplicate))
+            self.examples.append((row.question1, row.question2, row.label))
+
+    def __len__(self):
+        return len(self.examples)
+
+    def __getitem__(self, idx):
+        return self.examples[idx]
+
+
+class QuestionPairTestTrainDataset(Dataset):
+    """
+    Gets question pairs of test and train combinations along with test indx and the label - 1/0
+    If the train label and test matches , its 1 which will only be for the questions belonging to the true label
+    """
+
+    def __init__(self, data_path: str):
+        df = pd.read_csv(data_path)
+
+        self.examples = []
+
+        for row in df.itertuples(index=False):
+            self.examples.append((row.question1, row.question2, row.label, row.idx))
 
     def __len__(self):
         return len(self.examples)
@@ -136,7 +157,7 @@ class QuestionPairSentBertDataset(Dataset):
 
         for row in df.itertuples(index=False):
             inp_example = InputExample(
-                texts=[row.question1, row.question2], label=float(row.is_duplicate)
+                texts=[row.question1, row.question2], label=float(row.label)
             )
             self.examples.append(inp_example)
 

@@ -5,33 +5,30 @@ DATASETS:
   # For Dialogue - banking / clinc / hwu
   DATASET_NAME: "curekart"
   OOS_CLASS_NAME: "NO_NODES_DETECTED"
-
-EMBEDDINGS:
-  # Specify embedding type - dense / sparse
-  EMBEDDING_TYPE : "dense"
-  # If sparse embedding is used, specify "tfidf-word"/"tfidf-char"/"cv"
-  SPARSE_EMB_METHOD: "tfidf-word"
-  # Specify a model name which is implemented via Huggingface - "bert-base-uncased" / "sentence-transformers/all-MiniLM-L6-v2"
-  MODEL_NAME : "sentence-transformers/all-MiniLM-L12-v1"
-  OOS_THRESHOLD : 0.1
-
+  # Subsets of train data to use. haptik - "train"/"subset_train", dialoglue - "train"/"train_5"/"train_10"
+  DATA_SUBSET: "train"
 
 TRAINING:
-  NUM_ITERATIONS : 100
+  # Model - type - CROSS_ENCODER / BI_ENCODER / CLASSIFIER
+  MODEL_TYPE : CROSS_ENCODER
+  NUM_ITERATIONS : 10
   TRAIN_OUTPUT_DIR: "./models/"
-  MODEL_NAME : "sentence-transformers/all-MiniLM-L6-v2"
+  # Specify the model like "sentence-transformers/all-MiniLM-L6-v2" or "bert-base-uncased"
+  MODEL_NAME : "bert-base-uncased"
+  TOKENIZER_NAME: "bert-base-uncased"
   # Specify model layer to unfreeze - 11,5 etc
-  SENTBERT_LAYERS_TO_UNFREEZE : [5]
+  LAYERS_TO_UNFREEZE : [11]
   # Specify a loss metric for Sentence Bert models - CosineSimilarityLoss / ContrastiveLoss
   LOSS_METRIC : "ContrastiveLoss"
   BATCH_SIZE : 16
   LEARNING_RATE: 2e-5
-  SCHEDULER: 'WarmupLinear'
-
+  # Specify scheduler - "WarmupLinear" for SentenceBert / "linear" for Bert
+  SCHEDULER: 'linear'
+  VALIDATION_SPLIT: 0.2
 
 EVALUATION:
-  # Set True for bm25 evaluation and False for dense/sparse embedding evaluation
-  USE_BM25: False
+  # Evaluation methods - "EMBEDDINGS" / "CROSS_ENCODER" / "CLASSIFIER"
+  EVALUATION_METHOD : "CROSS_ENCODER"
   # Set True/False for the evaluation metrics
   CHECK_SUCCESS_RATE: True
   CHECK_PRECISION : True
@@ -42,5 +39,22 @@ EVALUATION:
   CHECK_F1_MICRO: True
   CHECK_F1_WEIGHTED: True
   CHECK_OOS_ACCURACY : True
+  OOS_THRESHOLD : [0.1,0.2,0.3]
   # Specify k values less than 10
   K_VAL : [1,2,5,10]
+
+EMBEDDINGS:
+  # Uses the following evaluation only if EVALUATION_METHOD = "EMBEDDINGS"
+  # Set True for bm25/fastext/glove evaluation and False for dense/sparse embedding evaluation
+  USE_BM25_FASTTEXT_GLOVE: False
+  # Select either "BM25" / "FASTTEXT" / 'GLOVE'
+  SELECT_BM25_FASTTEXT_GLOVE: "BM25"
+  FASTTEXT_MODEL_PATH: "models/fasttext_ecom_model_2.bin"
+  GLOVE_MODEL_PATH: "models/glove.6B/glove.6B.300d.txt"
+
+  # Specify embedding type - dense / sparse - Used only if USE_BM25_FASTTEXT_GLOVE is set to False
+  EMBEDDING_TYPE : "dense"
+  # If sparse embedding is used, specify "tfidf-word"/"tfidf-char"/"cv"
+  SPARSE_EMB_METHOD: "tfidf-word"
+  # Specify a model name which is implemented via Huggingface - "bert-base-uncased" / "models/convbert" (DialoGLUE convbert model) / "sentence-transformers/all-MiniLM-L6-v2"
+  MODEL_NAME : "models/convbert"
