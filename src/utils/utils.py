@@ -77,27 +77,24 @@ def run_evaluation_metrics(
     for threshold in config["EVALUATION"]["OOS_THRESHOLD"]:
         eval_metrics = {}
         if oos_label_indx:
-            # remove out of scope intents to get inscope accuracy
+            # remove out of scope intents based on ground truth to get inscope accuracy
             indx_in_scope = [
                 i for i, label in enumerate(actual_labels) if label[0] != oos_label_indx
             ]
             indx_out_scope = [
                 i for i, label in enumerate(actual_labels) if label[0] == oos_label_indx
             ]
-            # change predicted label to oos based on threshold
-            pred_labels = predicted_labels
-            for i, score in enumerate(pred_scores):
-                if score < threshold:
-                    pred_labels[i] = [oos_label_indx] * len(pred_labels[i])
+            pred_labels = predicted_labels[:]
             # separate the sets for in scope and out of scope accuracy
             oos_predicted = [pred_labels[i] for i in indx_out_scope]
             oos_actual = [actual_labels[i] for i in indx_out_scope]
+            oos_scores = [pred_scores[i] for i in indx_out_scope]
             gt_labels = [actual_labels[i] for i in indx_in_scope]
             pred_labels = [pred_labels[i] for i in indx_in_scope]
         else:
             gt_labels = actual_labels
             pred_labels = predicted_labels
-            oos_actual, oos_predicted = None, None
+            oos_actual, oos_predicted, oos_scores = None, None, None
         for k in k_vals:
             pred_labels_k = [x[:k] for x in pred_labels]
             eval_metrics[k] = {}
@@ -143,6 +140,10 @@ def run_evaluation_metrics(
             if config["EVALUATION"]["CHECK_OOS_ACCURACY"]:
                 oos_accuracy = -1
                 if oos_actual and oos_predicted and k == 1:
+                    # change predicted label to oos based on threshold
+                    for i, score in enumerate(oos_scores):
+                        if score < threshold:
+                            oos_predicted[i] = [oos_label_indx] * len(oos_predicted[i])
                     oos_accuracy = success_rate_at_k_batch(oos_actual, oos_predicted, k)
                 eval_metrics[k].update({"oos_accuracy": oos_accuracy})
         eval_metrics_thresholds[threshold] = eval_metrics

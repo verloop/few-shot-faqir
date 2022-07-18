@@ -8,13 +8,15 @@ import math
 import time
 
 import torch
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 
 from src.utils.utils import save_yaml
 
 
 class BiEncoderModelTrainer:
-    def __init__(self, model_name, do_lower_case=True, device="cuda"):
-        self.model_name_or_path = model_name
+    def __init__(self, config, do_lower_case=True, device="cuda"):
+        self.config = config
+        self.model_name_or_path = self.config["TRAINING"]["MODEL_NAME"]
         self.do_lower_case = do_lower_case
         self.device_str = device
         self.device = torch.device(device)
@@ -38,13 +40,37 @@ class BiEncoderModelTrainer:
             "pooler": self.word_embedding_model.auto_model.pooler,
         }
 
-    def train(self, train_dataloader, cfg):
+    def smart_batching_collate(self, batch):
+        """
+        Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
+        Here, batch is a list of tuples: [(tokens, label), ...]
+        :param batch:
+            a batch from a SmartBatchingDataset
+        :return:
+            a batch of tensors for the model
+        """
+        num_texts = len(batch[0].texts)
+        texts = [[] for _ in range(num_texts)]
+        labels = []
 
-        NUM_ITERATIONS = cfg["TRAINING"]["NUM_ITERATIONS"]
-        LEARNING_RATE = float(cfg["TRAINING"]["LEARNING_RATE"])
-        SCHEDULER = cfg["TRAINING"]["SCHEDULER"]
+        for example in batch:
+            for idx, text in enumerate(example.texts):
+                texts[idx].append(text)
+
+            labels = labels + [example.label]
+
+        sentences_1 = texts[0]
+        sentences_2 = texts[1]
+
+        return sentences_1, sentences_2, labels
+
+    def train(self, train_dataloader, val_dataloader=None):
+
+        NUM_ITERATIONS = self.config["TRAINING"]["NUM_ITERATIONS"]
+        LEARNING_RATE = float(self.config["TRAINING"]["LEARNING_RATE"])
+        SCHEDULER = self.config["TRAINING"]["SCHEDULER"]
         TRAIN_OUTPUT_DIR = (
-            cfg["TRAINING"]["TRAIN_OUTPUT_DIR"] + str(int(time.time())) + "/"
+            self.config["TRAINING"]["TRAIN_OUTPUT_DIR"] + str(int(time.time())) + "/"
         )
         OPTIMIZER = torch.optim.AdamW
         STEPS_PER_EPOCH = math.ceil(len(train_dataloader))
@@ -53,9 +79,9 @@ class BiEncoderModelTrainer:
         if STEPS_PER_EPOCH * NUM_TRAIN_EPOCHS > NUM_ITERATIONS:
             STEPS_PER_EPOCH = math.ceil(NUM_ITERATIONS / NUM_TRAIN_EPOCHS)
 
-        LOSS_METRIC = cfg["TRAINING"]["LOSS_METRIC"]
+        LOSS_METRIC = self.config["TRAINING"]["LOSS_METRIC"]
         self.model.train()
-        LAYERS_TO_UNFREEZE = cfg["TRAINING"]["SENTBERT_LAYERS_TO_UNFREEZE"]
+        LAYERS_TO_UNFREEZE = self.config["TRAINING"]["LAYERS_TO_UNFREEZE"]
         for layer in LAYERS_TO_UNFREEZE:
             self.layers_to_train.update(
                 {
@@ -83,10 +109,24 @@ class BiEncoderModelTrainer:
         warmup_steps = math.ceil(
             len(train_dataloader) * NUM_TRAIN_EPOCHS * 0.1
         )  # 10% of train data for warm-up
+        evaluator = None
+        if val_dataloader:
+            val_dataloader.collate_fn = self.smart_batching_collate
+            sentences1 = []
+            sentences2 = []
+            scores = []
+            for x in val_dataloader:
+                sentences1 = sentences1 + x[0]
+                sentences2 = sentences2 + x[1]
+                scores = scores + x[2]
+            evaluator = EmbeddingSimilarityEvaluator(
+                sentences1=sentences1, sentences2=sentences2, scores=scores
+            )
         print("Setup losses and warmup steps")
         t1 = time.time()
         self.model.fit(
             train_objectives=[(train_dataloader, train_loss)],
+            evaluator=evaluator,
             epochs=NUM_TRAIN_EPOCHS,
             steps_per_epoch=STEPS_PER_EPOCH,
             evaluation_steps=1000,
@@ -98,7 +138,7 @@ class BiEncoderModelTrainer:
         )
 
         print(f"Time to train {str(time.time() - t1)}")
-        save_yaml(cfg, TRAIN_OUTPUT_DIR)
+        save_yaml(self.config, TRAIN_OUTPUT_DIR)
 
         del warmup_steps, train_loss, train_dataloader, params
         return TRAIN_OUTPUT_DIR

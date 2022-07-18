@@ -8,18 +8,17 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModel, AutoTokenizer
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 class DenseEmbeddings:
-    def __init__(self, model_name="bert-base-uncased"):
+    def __init__(self, model_name="bert-base-uncased", device="cuda"):
         self.model_name = model_name
+        self.device = torch.device(device)
         self.load_model()
 
     def load_model(self):
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.model = AutoModel.from_pretrained(self.model_name)
-        self.model.to(device)
+        self.model.to(self.device)
         self.model.eval()
 
     def mean_pooling(self, model_output, attention_mask):
@@ -72,7 +71,7 @@ class DenseEmbeddings:
             return None
         sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
 
-        return sentence_embeddings.to(device)
+        return sentence_embeddings.to(self.device)
 
 
 class FasttextEmbeddings:
