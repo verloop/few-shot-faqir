@@ -1,5 +1,6 @@
 import os
 import time
+from pathlib import Path
 
 import torch
 import torch.nn.functional as F
@@ -10,21 +11,15 @@ from src.utils.utils import save_yaml
 from transformers import (  # isort:skip
     AdamW,
     AutoModelForSequenceClassification,
-    AutoTokenizer,
     get_scheduler,
 )
 
 
 class CrossEncoderModelTrainer:
-    def __init__(
-        self, cfg, train_dataloader, val_dataloader, do_lower_case=True, device="cuda"
-    ):
+    def __init__(self, cfg, device="cuda"):
         self.cfg = cfg
-        self.model_name_or_path = self.cfg["CROSS_ENCODER_TRAINING"]["MODEL_NAME"]
-        self.tokenizer_name_or_path = self.cfg["CROSS_ENCODER_TRAINING"][
-            "TOKENIZER_NAME"
-        ]
-        self.do_lower_case = do_lower_case
+        self.model_name_or_path = self.cfg["TRAINING"]["MODEL_NAME"]
+        self.device_str = device
         self.device = torch.device(device)
         self.model = AutoModelForSequenceClassification.from_pretrained(
             self.model_name_or_path
@@ -32,24 +27,31 @@ class CrossEncoderModelTrainer:
         self.model.to(self.device)
         self.optimizer = AdamW(
             self.model.parameters(),
-            lr=float(self.cfg["CROSS_ENCODER_TRAINING"]["LEARNING_RATE"]),
+            lr=float(self.cfg["TRAINING"]["LEARNING_RATE"]),
         )
+        self.layers_to_train = {
+            "bert.pooler": self.model.bert.pooler,
+            "classifier": self.model.classifier,
+        }
+
+    def train(
+        self,
+        train_dataloader,
+        val_dataloader,
+    ):
         self.train_dl = train_dataloader
         self.val_dl = val_dataloader
 
-    def train(self):
-        num_training_steps = self.cfg["CROSS_ENCODER_TRAINING"]["NUM_ITERATIONS"]
-        SCHEDULER = self.cfg["CROSS_ENCODER_TRAINING"]["SCHEDULER"]
-        TRAIN_OUTPUT_DIR = (
-            self.cfg["CROSS_ENCODER_TRAINING"]["TRAIN_OUTPUT_DIR"] + "cross_encoder.pt"
+        num_training_steps = self.cfg["TRAINING"]["NUM_ITERATIONS"]
+        SCHEDULER = self.cfg["TRAINING"]["SCHEDULER"]
+        TRAIN_OUTPUT_DIR = self.cfg["TRAINING"]["TRAIN_OUTPUT_DIR"] + str(
+            int(time.time())
         )
-        LAYER_TO_UNFREEZE = self.cfg["CROSS_ENCODER_TRAINING"][
-            "BERT_LAYERS_TO_UNFREEZE"
-        ]
+        CROSS_ENCODER_FILE_NAME = TRAIN_OUTPUT_DIR + "/crossencoder.pt"
 
-        steps_done = 0
-        if os.path.isfile(TRAIN_OUTPUT_DIR):
-            return TRAIN_OUTPUT_DIR
+        p = Path(TRAIN_OUTPUT_DIR)
+        p.mkdir(exist_ok=True)
+        file = open(CROSS_ENCODER_FILE_NAME, "a+")
 
         lr_scheduler = get_scheduler(
             SCHEDULER,
@@ -59,33 +61,38 @@ class CrossEncoderModelTrainer:
         )
 
         # Freeze BERT layers
-        layers_to_train = {
-            f"bert.encoder.layer.{LAYER_TO_UNFREEZE}": self.model.bert.encoder.layer[
-                int(LAYER_TO_UNFREEZE)
-            ],
-            "bert.pooler": self.model.bert.pooler,
-            "classifier": self.model.classifier,
-        }
+        LAYERS_TO_UNFREEZE = self.cfg["TRAINING"]["LAYERS_TO_UNFREEZE"]
+        for layer in LAYERS_TO_UNFREEZE:
+            self.layers_to_train.update(
+                {
+                    f"bert.encoder.layer.{layer}": self.model.bert.encoder.layer[
+                        int(layer)
+                    ]
+                }
+            )
 
         print(f"**** Freezing model layers ****\n")
         params = list(self.model.named_parameters())
         for idx, (name, param) in enumerate(params):
-            if not name.startswith(tuple(layers_to_train.keys())):
+            if not name.startswith(tuple(self.layers_to_train.keys())):
                 print(f"Freezing {name} layer")
                 param.requires_grad = False
+            else:
+                param.requires_grad = True
 
         progress_bar = tqdm(range(num_training_steps))
 
         running_loss = 0.0
         running_correct = 0
+        steps_done = 0
 
         while True:
             self.model.train()
             for batch in self.train_dl:
-                if steps_done >= 20000:
+                if steps_done >= num_training_steps:
                     break
                 batch[0]["labels"] = batch[1]
-                batch[0].to(torch.device("cuda"))
+                batch[0].to(torch.device(self.device_str))
                 outputs = self.model(**batch[0])
                 loss = outputs.loss
                 loss.backward()
@@ -106,10 +113,9 @@ class CrossEncoderModelTrainer:
                     # print(f"training_accuracy: {running_correct/100}")
                     running_loss = 0.0
                     running_correct = 0
-
-            if steps_done >= 20000:
+            if steps_done >= num_training_steps:
                 break
-
+        if self.val_dl:
             with torch.no_grad():
                 labels = []
                 preds = []
@@ -122,7 +128,7 @@ class CrossEncoderModelTrainer:
 
                 for batch in self.val_dl:
                     batch[0]["labels"] = batch[1]
-                    batch[0].to(torch.device("cuda"))
+                    batch[0].to(torch.device(self.device_str))
                     outputs = self.model(**batch[0])
 
                     val_running_loss += outputs.loss.item()
@@ -151,8 +157,8 @@ class CrossEncoderModelTrainer:
             "optimizer_state_dict": self.optimizer.state_dict(),
             "steps": steps_done,
         }
-        torch.save(checkpoint, f"{TRAIN_OUTPUT_DIR}")
+        torch.save(checkpoint, CROSS_ENCODER_FILE_NAME)
 
-        save_yaml(self.cfg, f"{TRAIN_OUTPUT_DIR}")
+        save_yaml(self.cfg, f"{TRAIN_OUTPUT_DIR}/")
 
-        return TRAIN_OUTPUT_DIR
+        return CROSS_ENCODER_FILE_NAME
