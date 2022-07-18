@@ -66,12 +66,19 @@ class HaptikDataLoader:
         data_source="haptik",
         dataset_name="curekart",
         data_type="train",
+        data_subset="train",
         intent_label_to_idx=None,
     ):
-        self.data_path = (
-            f"data/{data_source}/{data_type}/{dataset_name}_{data_type}.csv"
-        )
+        if data_type == "train":
+            self.data_path = (
+                f"data/{data_source}/{data_type}/{dataset_name}_{data_subset}.csv"
+            )
+        else:
+            self.data_path = (
+                f"data/{data_source}/{data_type}/{dataset_name}_{data_type}.csv"
+            )
         self.qp_data_path = f"data/{data_source}/{data_type}/{dataset_name}_{data_type}_question_pairs.csv"
+        self.qp_test_data_path = f"data/{data_source}/{data_type}/{dataset_name}_{data_type}_{data_subset}_question_pairs.csv"
         print(f"Loading data from {self.data_path}")
         self.dataset = HapticDataset(self.data_path, intent_label_to_idx)
 
@@ -184,7 +191,9 @@ class HaptikDataLoader:
     def get_crossencoder_test_dataloader(
         self, tokenizer: AutoTokenizer = None, is_qp=True, batch_size=4, shuffle=False
     ):
-        self.qp_test_train_dataset = QuestionPairTestTrainDataset(self.qp_data_path)
+        self.qp_test_train_dataset = QuestionPairTestTrainDataset(
+            self.qp_test_data_path
+        )
         return DataLoader(
             self.qp_test_train_dataset,
             batch_size=batch_size,
@@ -199,12 +208,14 @@ class DialogueIntentDataLoader:
         data_source="dialoglue",
         dataset_name="banking",
         data_type="train",
+        data_subset="train",
         intent_label_to_idx=None,
     ):
-        self.data_path = f"data/{data_source}/{dataset_name}/{data_type}.csv"
+        self.data_path = f"data/{data_source}/{dataset_name}/{data_subset}.csv"
         self.qp_data_path = (
-            f"data/{data_source}/{dataset_name}/{data_type}_question_pairs.csv"
+            f"data/{data_source}/{dataset_name}/{data_subset}_question_pairs.csv"
         )
+        self.qp_test_data_path = f"data/{data_source}/{dataset_name}/{data_type}_{data_subset}_question_pairs.csv"
         print(f"Loading data from {self.data_path}")
         self.dataset = DialoglueIntentDataset(self.data_path, intent_label_to_idx)
 
@@ -317,7 +328,9 @@ class DialogueIntentDataLoader:
     def get_crossencoder_test_dataloader(
         self, tokenizer: AutoTokenizer = None, is_qp=True, batch_size=4, shuffle=False
     ):
-        self.qp_test_train_dataset = QuestionPairTestTrainDataset(self.qp_data_path)
+        self.qp_test_train_dataset = QuestionPairTestTrainDataset(
+            self.qp_test_data_path
+        )
         return DataLoader(
             self.qp_test_train_dataset,
             batch_size=batch_size,

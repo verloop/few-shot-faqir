@@ -34,13 +34,18 @@ def evaluate(config):
     dataloader = get_dataloader_class(config)
     data_source = config["DATASETS"]["DATASET_SOURCE"]
     dataset_name = config["DATASETS"]["DATASET_NAME"]
+    data_subset = config["DATASETS"]["DATA_SUBSET"]
     dl_train = dataloader(
-        data_source=data_source, dataset_name=dataset_name, data_type="train"
+        data_source=data_source,
+        dataset_name=dataset_name,
+        data_type="train",
+        data_subset=data_subset,
     )
     dl_test = dataloader(
         data_source=data_source,
         dataset_name=dataset_name,
         data_type="test",
+        data_subset="test",
         intent_label_to_idx=dl_train.dataset.intent_label_to_idx,
     )
     if config["EVALUATION"]["EVALUATION_METHOD"] == "EMBEDDINGS":
@@ -164,11 +169,15 @@ def evaluate(config):
 
     if config["EVALUATION"]["EVALUATION_METHOD"] == "CROSS_ENCODER":
         print("Running evaluation with cross encoders")
-        dataloader = get_dataloader_class(config)
-        data_source = config["DATASETS"]["DATASET_SOURCE"]
-        dataset_name = config["DATASETS"]["DATASET_NAME"]
         batch_size = config["TRAINING"]["BATCH_SIZE"]
         tokenizer = AutoTokenizer.from_pretrained(config["TRAINING"]["TOKENIZER_NAME"])
+        dl_test = dataloader(
+            data_source=data_source,
+            dataset_name=dataset_name,
+            data_type="test",
+            data_subset=data_subset,
+            intent_label_to_idx=dl_train.dataset.intent_label_to_idx,
+        )
         test_dataloader = dl_test.get_crossencoder_test_dataloader(
             tokenizer=tokenizer, batch_size=batch_size
         )
@@ -274,13 +283,18 @@ def evaluate_bm25(config):
     dataloader = get_dataloader_class(config)
     data_source = config["DATASETS"]["DATASET_SOURCE"]
     dataset_name = config["DATASETS"]["DATASET_NAME"]
+    data_subset = config["DATASETS"]["DATA_SUBSET"]
     dl_train = dataloader(
-        data_source=data_source, dataset_name=dataset_name, data_type="train"
+        data_source=data_source,
+        dataset_name=dataset_name,
+        data_type="train",
+        data_subset=data_subset,
     )
     dl_test = dataloader(
         data_source=data_source,
         dataset_name=dataset_name,
         data_type="test",
+        data_subset="test",
         intent_label_to_idx=dl_train.dataset.intent_label_to_idx,
     )
     dl_train_data, _ = dl_train.get_dataloader(batch_size=100, shuffle=False)

@@ -92,7 +92,8 @@ def evaluate_all():
     datasets = [
         {"source": "haptik", "data": "curekart"},
         {"source": "haptik", "data": "powerplay11"},
-        {"source": "haptik", "data": "sofmattress"},
+        {"source": "dialoglue", "data": "banking"}
+        # {"source": "haptik", "data": "sofmattress"},
     ]
 
     for dataset in datasets:
@@ -104,6 +105,7 @@ def evaluate_all():
         config["DATASETS"]["DATASET_NAME"] = dataset["data"]
 
         # Evaluate bm25
+        config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = True
         config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] = "BM25"
         eval_metrics = evaluate_bm25(config)
@@ -117,6 +119,7 @@ def evaluate_all():
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # Evaluate FastText
+        config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = True
         config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] = "FASTTEXT"
         eval_metrics = evaluate(config)
@@ -130,6 +133,7 @@ def evaluate_all():
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # Evaluate Glove
+        config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = True
         config["EMBEDDINGS"]["SELECT_BM25_FASTTEXT_GLOVE"] = "GLOVE"
         eval_metrics = evaluate(config)
@@ -143,6 +147,7 @@ def evaluate_all():
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # Evaluate Sparse embedding - TFIDF - Word
+        config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
         config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "sparse"
         config["EMBEDDINGS"]["SPARSE_EMB_METHOD"] = "tfidf-word"
@@ -157,6 +162,7 @@ def evaluate_all():
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # Evaluate Sparse embedding - TFIDF - Character
+        config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
         config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "sparse"
         config["EMBEDDINGS"]["SPARSE_EMB_METHOD"] = "tfidf-char"
@@ -171,6 +177,7 @@ def evaluate_all():
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # Evaluate Sparse embedding - CV
+        config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
         config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "sparse"
         config["EMBEDDINGS"]["SPARSE_EMB_METHOD"] = "cv"
@@ -185,6 +192,7 @@ def evaluate_all():
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # Evaluate Dense embedding - bert-base-uncased
+        config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
         config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
         config["EMBEDDINGS"]["MODEL_NAME"] = "bert-base-uncased"
@@ -199,6 +207,7 @@ def evaluate_all():
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # Evaluate Dense embedding - all-MiniLM-L12-v2
+        config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
         config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
         config["EMBEDDINGS"]["MODEL_NAME"] = "sentence-transformers/all-MiniLM-L12-v2"
@@ -213,6 +222,7 @@ def evaluate_all():
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # Evaluate Dense embedding - all-MiniLM-L6-v2
+        config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
         config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
         config["EMBEDDINGS"]["MODEL_NAME"] = "sentence-transformers/all-MiniLM-L6-v2"
@@ -227,11 +237,16 @@ def evaluate_all():
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # Evaluate after finetuning dense embedding - miniLM-L6
-        config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
-        config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
-        config["EMBEDDINGS"]["MODEL_NAME"] = "sentence-transformers/all-MiniLM-L6-v2"
+        config["TRAINING"]["MODEL_TYPE"] = "BI_ENCODER"
+        config["TRAINING"]["MODEL_NAME"] = "sentence-transformers/all-MiniLM-L6-v2"
+        config["TRAINING"]["TOKENIZER_NAME"] = config["TRAINING"]["MODEL_NAME"]
         config["TRAINING"]["LAYERS_TO_UNFREEZE"] = [5]
         config["TRAINING"]["NUM_ITERATIONS"] = 10000
+        config["TRAINING"]["SCHEDULER"] = "WarmupLinear"
+        config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
+        config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
+        config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
+
         eval_metrics = train(config)
         eval_metrics_pd = parse_eval_metrics(
             eval_metrics,
@@ -243,11 +258,15 @@ def evaluate_all():
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # Evaluate after finetuning dense embedding - miniLM-L6
+        config["TRAINING"]["MODEL_TYPE"] = "BI_ENCODER"
+        config["TRAINING"]["MODEL_NAME"] = "sentence-transformers/all-MiniLM-L6-v2"
+        config["TRAINING"]["TOKENIZER_NAME"] = config["TRAINING"]["MODEL_NAME"]
+        config["TRAINING"]["LAYERS_TO_UNFREEZE"] = [5]
+        config["TRAINING"]["NUM_ITERATIONS"] = 20000
+        config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
         config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
-        config["EMBEDDINGS"]["MODEL_NAME"] = "sentence-transformers/all-MiniLM-L6-v2"
-        config["TRAINING"]["SENTBERT_LAYERS_TO_UNFREEZE"] = [5]
-        config["TRAINING"]["NUM_ITERATIONS"] = 20000
+
         eval_metrics = train(config)
         eval_metrics_pd = parse_eval_metrics(
             eval_metrics,
@@ -259,7 +278,15 @@ def evaluate_all():
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # Evaluate cross encoder model
-        config["CROSS_ENCODER_TRAINING"]["USE_CROSS_ENCODER"] = True
+        config["TRAINING"]["MODEL_TYPE"] = "CROSS_ENCODER"
+        config["TRAINING"]["MODEL_NAME"] = "bert-base-uncased"
+        config["TRAINING"]["TOKENIZER_NAME"] = config["TRAINING"]["MODEL_NAME"]
+        config["TRAINING"]["LAYERS_TO_UNFREEZE"] = [11]
+        config["TRAINING"]["SCHEDULER"] = "linear"
+        config["TRAINING"]["VALIDATION_SPLIT"] = 0
+        config["TRAINING"]["NUM_ITERATIONS"] = 10
+        config["EVALUATION"]["EVALUATION_METHOD"] = "CROSS_ENCODER"
+
         eval_metrics = train(config)
         eval_metrics_pd = parse_eval_metrics(
             eval_metrics,

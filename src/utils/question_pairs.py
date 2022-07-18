@@ -9,12 +9,14 @@ from src.data.dataloaders import (  # isort:skip
 )
 
 
-def test_question_pairs(train_dataloader, test_dataloader, data_path):
+def test_question_pairs(train_dataloader, test_dataloader, data_path, data_subset):
     train_data = train_dataloader.dataset[:]
     test_data = test_dataloader.dataset[:]
     _ = [test_data[i].update({"idx": i}) for i in range(len(test_data))]
     partial_filename = data_path.split(".")[0]
-    with open(f"{partial_filename}_question_pairs.csv", "w", newline="") as f_output:
+    with open(
+        f"{partial_filename}_{data_subset}_question_pairs.csv", "w", newline=""
+    ) as f_output:
         csv_output = csv.DictWriter(
             f_output,
             fieldnames=["question1", "question2", "idx", "label"],
@@ -95,46 +97,58 @@ if __name__ == "__main__":
 
     # haptik
     dataset_names = ["curekart", "powerplay11", "sofmattress"]
-    for dataset_name in dataset_names:
-        # haptik train
-        dl_train = HaptikDataLoader(dataset_name=dataset_name, data_type="train")
-        train_dataloader, _ = dl_train.get_dataloader()
-        to_question_pairs(train_dataloader, data_path=dl_train.data_path)
-        # haptik test
-        dl_test = HaptikDataLoader(
-            dataset_name=dataset_name,
-            data_type="test",
-            intent_label_to_idx=train_dataloader.dataset.intent_label_to_idx,
-        )
-        test_dataloader, _ = dl_test.get_dataloader()
-        test_question_pairs(
-            train_dataloader=train_dataloader,
-            test_dataloader=test_dataloader,
-            data_path=dl_test.data_path,
-        )
+    for train_subset in ["train", "subset_train"]:
+        for dataset_name in dataset_names:
+            # haptik train
+            dl_train = HaptikDataLoader(
+                dataset_name=dataset_name, data_type="train", data_subset=train_subset
+            )
+            train_dataloader, _ = dl_train.get_dataloader()
+            to_question_pairs(train_dataloader, data_path=dl_train.data_path)
+            # haptik test
+            dl_test = HaptikDataLoader(
+                dataset_name=dataset_name,
+                data_type="test",
+                data_subset="test",
+                intent_label_to_idx=train_dataloader.dataset.intent_label_to_idx,
+            )
+            test_dataloader, _ = dl_test.get_dataloader()
+            test_question_pairs(
+                train_dataloader=train_dataloader,
+                test_dataloader=test_dataloader,
+                data_path=dl_test.data_path,
+                data_subset=train_subset,
+            )
 
     # dialogue intent
     dataset_names = ["banking", "clinc", "hwu"]
-    for dataset_name in dataset_names:
-        # dialogue intent train
-        dl_train = DialogueIntentDataLoader(
-            dataset_name=dataset_name, data_type="train"
-        )
-        train_dataloader, _ = dl_train.get_dataloader()
-        to_question_pairs(train_dataloader, data_path=dl_train.data_path)
-        # dialogue intent test
-        dl_test = DialogueIntentDataLoader(dataset_name=dataset_name, data_type="test")
-        test_dataloader, _ = dl_test.get_dataloader()
-        test_question_pairs(
-            train_dataloader=train_dataloader,
-            test_dataloader=test_dataloader,
-            data_path=dl_test.data_path,
-        )
-        # dialogue intent val
-        dl_val = DialogueIntentDataLoader(dataset_name=dataset_name, data_type="val")
-        val_dataloader, _ = dl_val.get_dataloader()
-        test_question_pairs(
-            train_dataloader=train_dataloader,
-            test_dataloader=val_dataloader,
-            data_path=dl_val.data_path,
-        )
+    for train_subset in ["train", "train_5", "train_10"]:
+        for dataset_name in dataset_names:
+            # dialogue intent train
+            dl_train = DialogueIntentDataLoader(
+                dataset_name=dataset_name, data_type="train", data_subset=train_subset
+            )
+            train_dataloader, _ = dl_train.get_dataloader()
+            to_question_pairs(train_dataloader, data_path=dl_train.data_path)
+            # dialogue intent test
+            dl_test = DialogueIntentDataLoader(
+                dataset_name=dataset_name, data_type="test", data_subset="test"
+            )
+            test_dataloader, _ = dl_test.get_dataloader()
+            test_question_pairs(
+                train_dataloader=train_dataloader,
+                test_dataloader=test_dataloader,
+                data_path=dl_test.data_path,
+                data_subset=train_subset,
+            )
+            # dialogue intent val
+            dl_val = DialogueIntentDataLoader(
+                dataset_name=dataset_name, data_type="val", data_subset="val"
+            )
+            val_dataloader, _ = dl_val.get_dataloader()
+            test_question_pairs(
+                train_dataloader=train_dataloader,
+                test_dataloader=val_dataloader,
+                data_path=dl_val.data_path,
+                data_subset=train_subset,
+            )

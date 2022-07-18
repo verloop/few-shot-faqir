@@ -12,16 +12,20 @@ def train(config):
     dataloader = get_dataloader_class(config)
     data_source = config["DATASETS"]["DATASET_SOURCE"]
     dataset_name = config["DATASETS"]["DATASET_NAME"]
+    data_subset = config["DATASETS"]["DATA_SUBSET"]
     batch_size = config["TRAINING"]["BATCH_SIZE"]
     dl_train = dataloader(
-        data_source=data_source, dataset_name=dataset_name, data_type="train"
+        data_source=data_source,
+        dataset_name=dataset_name,
+        data_type="train",
+        data_subset=data_subset,
     )
 
     if config["TRAINING"]["MODEL_TYPE"] == "BI_ENCODER":
         print("Training and evaluation with Bi-Encoder")
         trainer = BiEncoderModelTrainer(config)
         train_dataloader, val_dataloader = dl_train.get_qp_sbert_dataloader(
-            batch_size=batch_size, val_split_pct=0.2
+            batch_size=batch_size, val_split_pct=config["TRAINING"]["VALIDATION_SPLIT"]
         )
         model_folder = trainer.train(train_dataloader, val_dataloader)
         config["EMBEDDINGS"]["MODEL_NAME"] = model_folder
@@ -33,7 +37,9 @@ def train(config):
         print("Training and evaluation with Cross Encoder")
         tokenizer = AutoTokenizer.from_pretrained(config["TRAINING"]["TOKENIZER_NAME"])
         train_dataloader, val_dataloader = dl_train.get_qp_dataloader(
-            tokenizer=tokenizer, batch_size=batch_size, val_split_pct=0.2
+            tokenizer=tokenizer,
+            batch_size=batch_size,
+            val_split_pct=config["TRAINING"]["VALIDATION_SPLIT"],
         )
         val_dataloader = None
         trainer = CrossEncoderModelTrainer(config)

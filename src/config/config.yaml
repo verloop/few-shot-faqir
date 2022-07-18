@@ -5,6 +5,8 @@ DATASETS:
   # For Dialogue - banking / clinc / hwu
   DATASET_NAME: "curekart"
   OOS_CLASS_NAME: "NO_NODES_DETECTED"
+  # Subsets of train data to use. haptik - "train"/"subset_train", dialoglue - "train"/"train_5"/"train_10"
+  DATA_SUBSET: "train"
 
 TRAINING:
   # Model - type - CROSS_ENCODER / BI_ENCODER / CLASSIFIER
@@ -22,7 +24,7 @@ TRAINING:
   LEARNING_RATE: 2e-5
   # Specify scheduler - "WarmupLinear" for SentenceBert / "linear" for Bert
   SCHEDULER: 'linear'
-
+  VALIDATION_SPLIT: 0.2
 
 EVALUATION:
   # Evaluation methods - "EMBEDDINGS" / "CROSS_ENCODER" / "CLASSIFIER"
