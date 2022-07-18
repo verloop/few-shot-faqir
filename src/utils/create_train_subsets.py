@@ -39,7 +39,6 @@ class Embeddings:
     def encode(self, all_queries):
         embeddings = self.sentence_transformer_encode(all_queries)
         return embeddings
-        return None
 
 
 def cos_sim(a: Tensor, b: Tensor):
