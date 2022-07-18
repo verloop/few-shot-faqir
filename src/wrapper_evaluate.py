@@ -64,6 +64,7 @@ def parse_eval_metrics(eval_metrics_thresh, method, data_source, data_name, conf
         "method": [method] * len(k_vals),
         "data_source": [data_source] * len(k_vals),
         "dataset": [data_name] * len(k_vals),
+        "subset": [config["DATASETS"]["DATA_SUBSET"]] * len(k_vals),
         "threshold": thresholds,
         "k": k_vals,
         "sr": sr,
@@ -90,13 +91,14 @@ def evaluate_all():
     # {"source":"dialoglue","data":"banking"},{"source":"dialoglue","data":"clinc"},{"source":"dialoglue","data":"hwu"}]
 
     datasets = [
-        {"source": "haptik", "data": "curekart"},
-        {"source": "haptik", "data": "powerplay11"},
-        {"source": "dialoglue", "data": "banking"}
+        {"source": "haptik", "data": "curekart", "data_subset": "subset_train"},
+        {"source": "dialoglue", "data": "banking", "data_subset": "train_5"}
         # {"source": "haptik", "data": "sofmattress"},
     ]
 
     for dataset in datasets:
+        config["DATASETS"]["DATA_SUBSET"] = dataset["data_subset"]
+
         if dataset["source"] == "haptik" or dataset["data"] == "clinc":
             config["EVALUATION"]["CHECK_OOS_ACCURACY"] = True
         else:
