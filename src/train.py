@@ -5,6 +5,7 @@ from src.data.dataloaders import HaptikDataLoader
 from src.evaluate import evaluate
 from src.training.train_biencoder import BiEncoderModelTrainer
 from src.training.train_crossencoder import CrossEncoderModelTrainer
+from src.training.train_sbert_crossencoder import SbertCrossEncoderModelTrainer
 from src.utils.utils import get_dataloader_class
 
 
@@ -50,9 +51,18 @@ def train(config):
         eval_metrics = evaluate(config)
         return eval_metrics
 
-    if config["TRAINING"]["MODEL_TYPE"] == "CLASSIFIER":
-        print("Training and evaluation with classifier")
-        pass
+    if config["TRAINING"]["MODEL_TYPE"] == "SBERT_CROSS_ENCODER":
+        print("Training and evaluation with sbert cross encoder")
+        trainer = SbertCrossEncoderModelTrainer(config)
+        train_dataloader, val_dataloader = dl_train.get_qp_sbert_dataloader(
+            batch_size=batch_size, val_split_pct=config["TRAINING"]["VALIDATION_SPLIT"]
+        )
+        model_folder = trainer.train(train_dataloader, val_dataloader)
+        print(model_folder)
+        config["TRAINING"]["MODEL_NAME"] = model_folder
+        config["EVALUATION"]["EVALUATION_METHOD"] == "SBERT_CROSS_ENCODER"
+        eval_metrics = evaluate(config)
+        return eval_metrics
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ class DialoglueIntentDataset(Dataset):
         # Intent categories
         intent_vocab_path = os.path.join(data_dirname, "categories.json")
         intent_names = json.load(open(intent_vocab_path))
+        intent_names = intent_names + ["oos"]
         if intent_label_to_idx:
             self.intent_label_to_idx = intent_label_to_idx
         else:
@@ -116,7 +117,7 @@ class HapticDataset(Dataset):
 class QuestionPairDataset(Dataset):
     def __init__(self, data_path: str):
         df = pd.read_csv(data_path)
-
+        # df= df.sample(n=1000)
         self.examples = []
 
         for row in df.itertuples(index=False):
@@ -137,7 +138,7 @@ class QuestionPairTestTrainDataset(Dataset):
 
     def __init__(self, data_path: str):
         df = pd.read_csv(data_path)
-
+        # df= df.sample(n=10000)
         self.examples = []
 
         for row in df.itertuples(index=False):
@@ -153,6 +154,7 @@ class QuestionPairTestTrainDataset(Dataset):
 class QuestionPairSentBertDataset(Dataset):
     def __init__(self, data_path: str):
         df = pd.read_csv(data_path)
+        # df = df.sample(n=10000)
         self.examples = []
 
         for row in df.itertuples(index=False):

@@ -64,7 +64,7 @@ def cos_sim(a: Tensor, b: Tensor):
 
 
 def cluster_detection(
-    embeddings, threshold=0.75, min_cluster_size=10, max_cluster_size=1000
+    embeddings, threshold=0.6, min_cluster_size=1, max_cluster_size=1000
 ):
     """
     Function for Cluster Detection.
@@ -224,7 +224,7 @@ def find_examplars(data_dict, n_examples: int = None):
     return subset_data
 
 
-def subset_labels(dataframe_path, train_file_name, n_examples=5):
+def subset_labels(dataframe_path, train_file_name, out_file_name, n_examples=5):
     data = pd.read_csv(os.path.join(dataframe_path, train_file_name))
     data["sentences"] = data.groupby(["label"])["sentence"].transform(
         lambda x: ";".join(x)
@@ -233,7 +233,7 @@ def subset_labels(dataframe_path, train_file_name, n_examples=5):
     data = data.drop_duplicates()
     data_dict = data.set_index("label").T.to_dict()
     subset_data = find_examplars(data_dict, n_examples=n_examples)
-    subset_data.to_csv(os.path.join(dataframe_path, "subset_" + train_file_name))
+    subset_data.to_csv(os.path.join(dataframe_path, out_file_name))
     print("Subset creation completed")
 
 
@@ -241,6 +241,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataframe_path", type=str, help="path to train dataset")
     parser.add_argument("--train_file_name", type=str, help="train file name")
+    parser.add_argument("--out_file_name", type=str, help="out_file_name")
     parser.add_argument(
         "--n_examples", type=int, default=5, help="minimum number of examples"
     )
@@ -249,4 +250,5 @@ if __name__ == "__main__":
         dataframe_path=args.dataframe_path,
         train_file_name=args.train_file_name,
         n_examples=args.n_examples,
+        out_file_name=args.out_file_name,
     )
