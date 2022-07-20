@@ -7,6 +7,7 @@ DATASETS:
   OOS_CLASS_NAME: "NO_NODES_DETECTED"
   # Subsets of train data to use. haptik - "train"/"subset_train", dialoglue - "train"/"train_5"/"train_10"
   DATA_SUBSET: "train"
+  N_LABELS: 28
 
 TRAINING:
   # Model - type - CROSS_ENCODER / BI_ENCODER / CLASSIFIER / SBERT_CROSS_ENCODER
@@ -14,10 +15,10 @@ TRAINING:
   NUM_ITERATIONS : 10000
   TRAIN_OUTPUT_DIR: "./models/"
   # Specify the model like "sentence-transformers/all-MiniLM-L6-v2" or "bert-base-uncased" /"cross-encoder/stsb-distilroberta-base"
-  MODEL_NAME : "cross-encoder/stsb-distilroberta-base"
-  TOKENIZER_NAME: "cross-encoder/stsb-distilroberta-base"
+  MODEL_NAME : "bert-base-uncased"
+  TOKENIZER_NAME: "bert-base-uncased"
   # Specify model layer to unfreeze - 11,5 etc
-  LAYERS_TO_UNFREEZE : [5]
+  LAYERS_TO_UNFREEZE : [11]
   # Specify a loss metric for Sentence Bert Bi-Encoder models - CosineSimilarityLoss / ContrastiveLoss
   LOSS_METRIC : "ContrastiveLoss"
   BATCH_SIZE : 16
@@ -25,6 +26,7 @@ TRAINING:
   # Specify scheduler - "WarmupLinear" for SentenceBert / "linear" for Bert
   SCHEDULER: 'WarmupLinear'
   VALIDATION_SPLIT: 0.2
+
 
 EVALUATION:
   # Evaluation methods - "EMBEDDINGS" / "CROSS_ENCODER" / "CLASSIFIER" / SBERT_CROSS_ENCODER
@@ -57,4 +59,4 @@ EMBEDDINGS:
   # If sparse embedding is used, specify "tfidf-word"/"tfidf-char"/"cv"
   SPARSE_EMB_METHOD: "tfidf-word"
   # Specify a model name which is implemented via Huggingface - "bert-base-uncased" / "models/convbert" (DialoGLUE convbert model) / "sentence-transformers/all-MiniLM-L6-v2"
-  MODEL_NAME : "models/convbert"
+  MODEL_NAME : "bert-base-uncased"

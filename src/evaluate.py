@@ -21,6 +21,7 @@ from src.embeddings.dense_embeddings import (  # isort:skip
     get_similar,
 )
 
+
 from src.utils.utils import (  # isort:skip
     get_batched_embeddings_dense,
     get_batched_embeddings_sparse,

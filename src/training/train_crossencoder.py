@@ -136,10 +136,7 @@ class CrossEncoderModelTrainer:
                     predicted = torch.argmax(outputs.logits, 1)
                     n_correct += (predicted == batch[0]["labels"]).sum().item()
 
-                    class_predictions = [
-                        F.softmax(output, dim=0) for output in outputs.logits
-                    ]
-
+                    class_predictions = torch.argmax(outputs.logits, 1)
                     preds.append(class_predictions)
                     labels.append(batch[0]["labels"])
 

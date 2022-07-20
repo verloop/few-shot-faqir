@@ -3,6 +3,7 @@ import yaml
 
 from src.evaluate import evaluate, evaluate_bm25
 from src.train import train
+from src.training.train_classifier import evaluate_bert_classifier
 
 
 def parse_eval_metrics(eval_metrics_thresh, method, data_source, data_name, config):
@@ -91,28 +92,39 @@ def evaluate_all():
     # {"source":"dialoglue","data":"banking"},{"source":"dialoglue","data":"clinc"},{"source":"dialoglue","data":"hwu"}]
 
     datasets = [
-        # {"source": "haptik", "data": "curekart", "data_subset": "train"},
-        # {"source": "haptik", "data": "powerplay11", "data_subset": "train"},
-        # {"source": "haptik", "data": "sofmattress", "data_subset": "train"},
-        # {"source": "haptik", "data": "curekart", "data_subset": "subset_train"},
-        # {"source": "haptik", "data": "powerplay11", "data_subset": "subset_train"},
-        # {"source": "haptik", "data": "sofmattress", "data_subset": "subset_train"},
-        # {"source": "dialoglue", "data": "banking", "data_subset": "train"},
-        # {"source": "dialoglue", "data": "clinc", "data_subset": "train"},
-        # {"source": "dialoglue", "data": "hwu", "data_subset": "train"},
-        # {"source": "dialoglue", "data": "banking", "data_subset": "train_5"},
-        {"source": "dialoglue", "data": "clinc", "data_subset": "train_5"},
-        # {"source": "dialoglue", "data": "hwu", "data_subset": "train_5"},
-        # {"source": "dialoglue", "data": "banking", "data_subset": "train_10"},
-        # {"source": "dialoglue", "data": "clinc", "data_subset": "train_10"},
-        # {"source": "dialoglue", "data": "hwu", "data_subset": "train_10"},
+        {"source": "haptik", "data": "curekart", "data_subset": "train", "labels": 28},
+        # {"source": "haptik", "data": "powerplay11", "data_subset": "train","labels":57},
+        # {"source": "haptik", "data": "sofmattress", "data_subset": "train","labels":21},
+        # {"source": "haptik", "data": "curekart", "data_subset": "subset_train","labels":28},
+        # {"source": "haptik", "data": "powerplay11", "data_subset": "subset_train","labels":57},
+        # {"source": "haptik", "data": "sofmattress", "data_subset": "subset_train","labels":21},
+        # {"source": "dialoglue", "data": "banking", "data_subset": "train","labels":77},
+        # {"source": "dialoglue", "data": "clinc", "data_subset": "train","labels":150},
+        # {"source": "dialoglue", "data": "hwu", "data_subset": "train","labels":64},
+        # {"source": "dialoglue", "data": "banking", "data_subset": "train_5","labels":77},
+        {
+            "source": "dialoglue",
+            "data": "clinc",
+            "data_subset": "train_5",
+            "labels": 150,
+        },
+        # {"source": "dialoglue", "data": "hwu", "data_subset": "train_5","labels":64},
+        {
+            "source": "dialoglue",
+            "data": "banking",
+            "data_subset": "train_10",
+            "labels": 77,
+        },
+        # {"source": "dialoglue", "data": "clinc", "data_subset": "train_10","labels":28},
+        {"source": "dialoglue", "data": "hwu", "data_subset": "train_10", "labels": 64},
     ]
 
     for dataset in datasets:
         config["DATASETS"]["DATA_SUBSET"] = dataset["data_subset"]
-
+        config["DATASETS"]["N_LABELS"] = dataset["labels"]
         if dataset["source"] == "haptik" or dataset["data"] == "clinc":
             config["EVALUATION"]["CHECK_OOS_ACCURACY"] = True
+            config["DATASETS"]["N_LABELS"] = dataset["labels"] + 1
             if dataset["source"] == "haptik":
                 config["DATASETS"]["OOS_CLASS_NAME"] = "NO_NODES_DETECTED"
             else:
@@ -278,7 +290,7 @@ def evaluate_all():
         # config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         # config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
         # config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
-        # config["TRAINING"]["VALIDATION_SPLIT"] = 0
+        # config["TRAINING"]["VALIDATION_SPLIT"] = 0.2
 
         # eval_metrics = train(config)
         # eval_metrics_pd = parse_eval_metrics(
@@ -300,7 +312,7 @@ def evaluate_all():
         # config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         # config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
         # config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
-        # config["TRAINING"]["VALIDATION_SPLIT"] = 0
+        # config["TRAINING"]["VALIDATION_SPLIT"] = 0.2
 
         # eval_metrics = train(config)
         # eval_metrics_pd = parse_eval_metrics(
@@ -351,6 +363,37 @@ def evaluate_all():
             config=config,
         )
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
+
+        # Evaluate simple finetuned classifier - bert
+        # config["TRAINING"]["MODEL_NAME"] = "bert-base-uncased"
+        # config["TRAINING"]["NUM_ITERATIONS"] = 10000
+        # config["TRAINING"]["VALIDATION_SPLIT"] = 0.2
+
+        # eval_metrics = evaluate_bert_classifier(config)
+        # eval_metrics_pd = parse_eval_metrics(
+        #     eval_metrics,
+        #     method="bert-classifier_finetuned_10K",
+        #     data_source=dataset["source"],
+        #     data_name=dataset["data"],
+        #     config=config,
+        # )
+        # evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
+
+        # Evaluate simple finetuned classifier - ConvBERT
+        # config["TRAINING"]["MODEL_NAME"] = "models/convbert"
+        # config["TRAINING"]["NUM_ITERATIONS"] = 10000
+        # config["TRAINING"]["VALIDATION_SPLIT"] = 0.2
+
+        # eval_metrics = evaluate_bert_classifier(config)
+        # eval_metrics_pd = parse_eval_metrics(
+        #     eval_metrics,
+        #     method="convbert-classifier_finetuned_10K",
+        #     data_source=dataset["source"],
+        #     data_name=dataset["data"],
+        #     config=config,
+        # )
+        # evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
+
         evaluation_metrics.to_csv("results.csv", index=False)
 
     evaluation_metrics.to_csv("results.csv", index=False)
