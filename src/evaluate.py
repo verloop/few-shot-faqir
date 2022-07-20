@@ -274,6 +274,11 @@ def evaluate(config):
     if config["EVALUATION"]["EVALUATION_METHOD"] == "SBERT_CROSS_ENCODER":
         print("Running evaluation with sbert cross encoders")
         batch_size = config["TRAINING"]["BATCH_SIZE"]
+        # Evaluation on reduced samples
+        if config["DATASETS"]["DATASET_SOURCE"] == "haptik":
+            data_subset = "subset_train"
+        else:
+            data_subset = "train_5"
         dl_test = dataloader(
             data_source=data_source,
             dataset_name=dataset_name,

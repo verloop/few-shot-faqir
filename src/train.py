@@ -58,6 +58,7 @@ def train(config):
             batch_size=batch_size, val_split_pct=config["TRAINING"]["VALIDATION_SPLIT"]
         )
         model_folder = trainer.train(train_dataloader, val_dataloader)
+        # model_folder="models/1658252948_clinc_train_5"
         print(model_folder)
         config["TRAINING"]["MODEL_NAME"] = model_folder
         config["EVALUATION"]["EVALUATION_METHOD"] == "SBERT_CROSS_ENCODER"

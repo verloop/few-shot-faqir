@@ -71,14 +71,14 @@ class HaptikDataLoader:
     ):
         if data_type == "train":
             self.data_path = (
-                f"data/{data_source}/{data_type}/{dataset_name}_{data_subset}.csv"
+                f"data/{data_source}/v1/{data_type}/{dataset_name}_{data_subset}.csv"
             )
         else:
             self.data_path = (
-                f"data/{data_source}/{data_type}/{dataset_name}_{data_type}.csv"
+                f"data/{data_source}/v1/{data_type}/{dataset_name}_{data_type}.csv"
             )
-        self.qp_data_path = f"data/{data_source}/{data_type}/{dataset_name}_{data_type}_question_pairs.csv"
-        self.qp_test_data_path = f"data/{data_source}/{data_type}/{dataset_name}_{data_type}_{data_subset}_question_pairs.csv"
+        self.qp_data_path = f"data/{data_source}/v1/{data_type}/{dataset_name}_{data_type}_question_pairs.csv"
+        self.qp_test_data_path = f"data/{data_source}/v1/{data_type}/{dataset_name}_{data_type}_{data_subset}_question_pairs.csv"
         print(f"Loading data from {self.data_path}")
         self.dataset = HapticDataset(self.data_path, intent_label_to_idx)
 
@@ -216,7 +216,7 @@ class DialogueIntentDataLoader:
             f"data/{data_source}/{dataset_name}/{data_subset}_question_pairs.csv"
         )
         self.qp_test_data_path = f"data/{data_source}/{dataset_name}/{data_type}_{data_subset}_question_pairs.csv"
-        print(f"Loading data from {self.data_path}")
+
         self.dataset = DialoglueIntentDataset(self.data_path, intent_label_to_idx)
 
     def train_test_split(self, dataset, val_split_pct):
@@ -236,6 +236,7 @@ class DialogueIntentDataLoader:
         tokenizer: AutoTokenizer = None,
         val_split_pct=0,
     ):
+        print(f"Data from {self.data_path}")
         if val_split_pct == 0:
             train_dataloader = DataLoader(
                 self.dataset,
@@ -271,6 +272,7 @@ class DialogueIntentDataLoader:
         is_qp=True,
         val_split_pct=0,
     ):
+        print(f"Data from {self.qp_data_path}")
         self.qp_dataset = QuestionPairDataset(self.qp_data_path)
         if val_split_pct == 0:
             train_dataloader = DataLoader(
@@ -300,6 +302,7 @@ class DialogueIntentDataLoader:
             return train_dataloader, val_dataloader
 
     def get_qp_sbert_dataloader(self, batch_size=4, shuffle=True, val_split_pct=0):
+        print(f"Data from {self.qp_data_path}")
         self.qp_dataset = QuestionPairSentBertDataset(self.qp_data_path)
         if val_split_pct == 0:
             train_dataloader = DataLoader(
@@ -328,6 +331,7 @@ class DialogueIntentDataLoader:
     def get_crossencoder_test_dataloader(
         self, tokenizer: AutoTokenizer = None, is_qp=True, batch_size=4, shuffle=False
     ):
+        print(f"Loading data for crossencoder test from {self.qp_test_data_path}")
         self.qp_test_train_dataset = QuestionPairTestTrainDataset(
             self.qp_test_data_path
         )

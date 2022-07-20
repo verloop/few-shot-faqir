@@ -94,18 +94,18 @@ def evaluate_all():
         # {"source": "haptik", "data": "curekart", "data_subset": "train"},
         # {"source": "haptik", "data": "powerplay11", "data_subset": "train"},
         # {"source": "haptik", "data": "sofmattress", "data_subset": "train"},
-        {"source": "haptik", "data": "curekart", "data_subset": "subset_train"},
-        {"source": "haptik", "data": "powerplay11", "data_subset": "subset_train"},
-        {"source": "haptik", "data": "sofmattress", "data_subset": "subset_train"},
+        # {"source": "haptik", "data": "curekart", "data_subset": "subset_train"},
+        # {"source": "haptik", "data": "powerplay11", "data_subset": "subset_train"},
+        # {"source": "haptik", "data": "sofmattress", "data_subset": "subset_train"},
         # {"source": "dialoglue", "data": "banking", "data_subset": "train"},
         # {"source": "dialoglue", "data": "clinc", "data_subset": "train"},
         # {"source": "dialoglue", "data": "hwu", "data_subset": "train"},
-        {"source": "dialoglue", "data": "banking", "data_subset": "train_5"},
+        # {"source": "dialoglue", "data": "banking", "data_subset": "train_5"},
         {"source": "dialoglue", "data": "clinc", "data_subset": "train_5"},
-        {"source": "dialoglue", "data": "hwu", "data_subset": "train_5"},
-        {"source": "dialoglue", "data": "banking", "data_subset": "train_10"},
-        {"source": "dialoglue", "data": "clinc", "data_subset": "train_10"},
-        {"source": "dialoglue", "data": "hwu", "data_subset": "train_10"},
+        # {"source": "dialoglue", "data": "hwu", "data_subset": "train_5"},
+        # {"source": "dialoglue", "data": "banking", "data_subset": "train_10"},
+        # {"source": "dialoglue", "data": "clinc", "data_subset": "train_10"},
+        # {"source": "dialoglue", "data": "hwu", "data_subset": "train_10"},
     ]
 
     for dataset in datasets:
@@ -224,6 +224,20 @@ def evaluate_all():
         # )
         # evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
+        # # Evaluate Dense embedding - ConvBERT
+        # config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
+        # config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
+        # config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
+        # config["EMBEDDINGS"]["MODEL_NAME"] = "models/convbert"
+        # eval_metrics = evaluate(config)
+        # eval_metrics_pd = parse_eval_metrics(
+        #     eval_metrics,
+        #     method="convbert",
+        #     data_source=dataset["source"],
+        #     data_name=dataset["data"],
+        #     config=config,
+        # )
+        # evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
         # # Evaluate Dense embedding - all-MiniLM-L12-v2
         # config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
         # config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
@@ -337,6 +351,7 @@ def evaluate_all():
             config=config,
         )
         evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
+        evaluation_metrics.to_csv("results.csv", index=False)
 
     evaluation_metrics.to_csv("results.csv", index=False)
 
