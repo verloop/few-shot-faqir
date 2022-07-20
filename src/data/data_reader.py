@@ -117,7 +117,8 @@ class HapticDataset(Dataset):
 class QuestionPairDataset(Dataset):
     def __init__(self, data_path: str):
         df = pd.read_csv(data_path)
-        # df= df.sample(n=1000)
+        samples = min(len(df), 200000)
+        df = df.sample(n=samples)
         self.examples = []
 
         for row in df.itertuples(index=False):
@@ -154,7 +155,12 @@ class QuestionPairTestTrainDataset(Dataset):
 class QuestionPairSentBertDataset(Dataset):
     def __init__(self, data_path: str):
         df = pd.read_csv(data_path)
-        # df = df.sample(n=10000)
+        if len(df) < 200000:
+            df = df.sample(n=200000, replace=True)
+        else:
+            df = df.sample(
+                n=200000
+            )  # Addded for Sentence Bert cross encoder training which doesnt have STEPS_PER_EPOCH
         self.examples = []
 
         for row in df.itertuples(index=False):
