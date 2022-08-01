@@ -29,8 +29,12 @@ TRAINING:
 
 
 EVALUATION:
-  # Evaluation methods - "EMBEDDINGS" / "CROSS_ENCODER" / "CLASSIFIER" / SBERT_CROSS_ENCODER
+  # Evaluation methods - "EMBEDDINGS" / "CROSS_ENCODER" / "CLASSIFIER" / "SBERT_CROSS_ENCODER"
   EVALUATION_METHOD : "SBERT_CROSS_ENCODER"
+  # Model name for evaluation - # Specify a model name which is implemented via Huggingface - "bert-base-uncased" / "models/convbert" (DialoGLUE convbert model) / "sentence-transformers/all-MiniLM-L6-v2"
+  MODEL_NAME : "bert-base-uncased"
+  TOKENIZER_NAME: "bert-base-uncased"
+  BATCH_SIZE : 16
   # Set True/False for the evaluation metrics
   CHECK_SUCCESS_RATE: True
   CHECK_PRECISION : True
@@ -59,4 +63,4 @@ EMBEDDINGS:
   # If sparse embedding is used, specify "tfidf-word"/"tfidf-char"/"cv"
   SPARSE_EMB_METHOD: "tfidf-word"
   # Specify a model name which is implemented via Huggingface - "bert-base-uncased" / "models/convbert" (DialoGLUE convbert model) / "sentence-transformers/all-MiniLM-L6-v2"
-  MODEL_NAME : "bert-base-uncased"
+  # MODEL_NAME : "bert-base-uncased"

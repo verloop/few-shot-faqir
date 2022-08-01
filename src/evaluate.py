@@ -37,6 +37,7 @@ def evaluate(config):
     data_source = config["DATASETS"]["DATASET_SOURCE"]
     dataset_name = config["DATASETS"]["DATASET_NAME"]
     data_subset = config["DATASETS"]["DATA_SUBSET"]
+
     dl_train = dataloader(
         data_source=data_source,
         dataset_name=dataset_name,
@@ -54,13 +55,18 @@ def evaluate(config):
         if config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] == False:
             if config["EMBEDDINGS"]["EMBEDDING_TYPE"] == "dense":
                 print("Evaluating dense embeddings")
-                model_name = config["EMBEDDINGS"]["MODEL_NAME"]
-                model_tokenizer = AutoTokenizer.from_pretrained(model_name)
+                model_name = config["EVALUATION"]["MODEL_NAME"]
+                tokenizer_model_name = config["EVALUATION"]["TOKENIZER_NAME"]
+                model_tokenizer = AutoTokenizer.from_pretrained(tokenizer_model_name)
                 dl_train_data, _ = dl_train.get_dataloader(tokenizer=model_tokenizer)
                 dl_test_data, _ = dl_test.get_dataloader(
                     shuffle=False, tokenizer=model_tokenizer
                 )
-                emb_model = DenseEmbeddings(model_name, device=device)
+                emb_model = DenseEmbeddings(
+                    model_name=model_name,
+                    tokenizer_model_name=tokenizer_model_name,
+                    device=device,
+                )
                 (
                     train_embeddings,
                     train_labels,
@@ -165,7 +171,7 @@ def evaluate(config):
             fname = f"{config['EMBEDDINGS']['SELECT_BM25_FASTTEXT_GLOVE']}"
         else:
             if config["EMBEDDINGS"]["EMBEDDING_TYPE"] == "dense":
-                fname = f"{config['EMBEDDINGS']['MODEL_NAME']}_{config['DATASETS']['DATASET_NAME']}"
+                fname = f"{config['EVALUATION']['MODEL_NAME']}_{config['DATASETS']['DATASET_NAME']}"
             else:
                 fname = f"{config['EMBEDDINGS']['SPARSE_EMB_METHOD']}_{config['DATASETS']['DATASET_NAME']}"
         fname = fname.replace("/", "")
@@ -174,8 +180,15 @@ def evaluate(config):
 
     if config["EVALUATION"]["EVALUATION_METHOD"] == "CROSS_ENCODER":
         print("Running evaluation with cross encoders")
-        batch_size = config["TRAINING"]["BATCH_SIZE"]
-        tokenizer = AutoTokenizer.from_pretrained(config["TRAINING"]["TOKENIZER_NAME"])
+        batch_size = config["EVALUATION"]["BATCH_SIZE"]
+        tokenizer = AutoTokenizer.from_pretrained(
+            config["EVALUATION"]["TOKENIZER_NAME"]
+        )
+        # Evaluation on reduced samples
+        if config["DATASETS"]["DATASET_SOURCE"] == "haptik":
+            data_subset = "subset_train"
+        else:
+            data_subset = "train_5"
         dl_test = dataloader(
             data_source=data_source,
             dataset_name=dataset_name,
@@ -187,10 +200,10 @@ def evaluate(config):
             tokenizer=tokenizer, batch_size=batch_size
         )
 
-        base_model_name = config["TRAINING"][
+        base_model_name = config["EVALUATION"][
             "TOKENIZER_NAME"
         ]  # loading the base model using the same as tokenizer
-        model_name = config["TRAINING"]["MODEL_NAME"]
+        model_name = config["EVALUATION"]["MODEL_NAME"]
         model = AutoModelForSequenceClassification.from_pretrained(base_model_name)
         model.to(torch.device(device))
 
@@ -274,7 +287,7 @@ def evaluate(config):
 
     if config["EVALUATION"]["EVALUATION_METHOD"] == "SBERT_CROSS_ENCODER":
         print("Running evaluation with sbert cross encoders")
-        batch_size = config["TRAINING"]["BATCH_SIZE"]
+        batch_size = config["EVALUATION"]["BATCH_SIZE"]
         # Evaluation on reduced samples
         if config["DATASETS"]["DATASET_SOURCE"] == "haptik":
             data_subset = "subset_train"
@@ -290,7 +303,7 @@ def evaluate(config):
         test_dataloader = dl_test.get_crossencoder_test_dataloader(
             batch_size=batch_size
         )
-        model_name = config["TRAINING"]["MODEL_NAME"]
+        model_name = config["EVALUATION"]["MODEL_NAME"]
         model = CrossEncoder(model_name, device=device)
 
         with torch.no_grad():
@@ -371,6 +384,53 @@ def evaluate(config):
             }
         )
         test_predictions.to_csv(f"predictions_cross_encoder.csv")
+        return eval_metrics
+
+    if config["EVALUATION"]["EVALUATION_METHOD"] == "CLASSIFIER":
+        print("Running evaluation with classifier approach")
+        num_labels = config["DATASETS"]["N_LABELS"]
+        model_name = config["EVALUATION"]["MODEL_NAME"]
+        batch_size = config["EVALUATION"]["BATCH_SIZE"]
+        tokenizer = AutoTokenizer.from_pretrained(
+            config["EVALUATION"]["TOKENIZER_NAME"]
+        )
+        test_dataloader, _ = dl_test.get_dataloader(
+            batch_size=batch_size, tokenizer=tokenizer
+        )
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_name, num_labels=num_labels
+        )
+        model.to(device)
+        model.eval()
+        prediction_labels_test = []
+        true_labels_test = []
+        pred_probs = []
+        for batch in test_dataloader:
+            true_labels_test += batch[1].numpy().flatten().tolist()
+            with torch.no_grad():
+                batch[0].to(torch.device(device))
+                outputs = model(**batch[0])
+                prediction_probs = F.softmax(outputs.logits, dim=1)
+                predicted = torch.argsort(outputs.logits, 1, descending=True)
+                predicted = predicted.detach().cpu().numpy()
+                prediction_probs = prediction_probs.detach().cpu().numpy()
+                pred_probs_ = [
+                    list(i[j])[0] for i, j in zip(prediction_probs, predicted)
+                ]
+                pred_probs += pred_probs_
+                prediction_labels_test += list(predicted)
+
+        true_labels_test = [[i] for i in true_labels_test]
+
+        oos_label_indx = None
+        if config["EVALUATION"]["CHECK_OOS_ACCURACY"]:
+            oos_label_indx = dl_train.dataset.intent_label_to_idx[
+                config["DATASETS"]["OOS_CLASS_NAME"]
+            ]
+
+        eval_metrics = run_evaluation_metrics(
+            config, true_labels_test, prediction_labels_test, pred_probs, oos_label_indx
+        )
         return eval_metrics
 
 

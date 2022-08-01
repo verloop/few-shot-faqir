@@ -60,6 +60,7 @@ def to_question_pairs(dataloader, data_path):  # no balancing
             delimiter=",",
         )
         csv_output.writeheader()
+
         for q1, q2 in itertools.combinations(data, 2):
             if q1["Label"] == q2["Label"]:
                 csv_output.writerow(
@@ -81,6 +82,7 @@ def to_question_pairs(dataloader, data_path):  # no balancing
 
 
 # def to_question_pairs(dataloader, data_path): # balanced
+#     # Balanced approach deteriorated results because of having too few samples of a sentence, if the number of samples per intent was low
 #     # Will cause memory overflow for large dataset
 #     data = dataloader.dataset[:]
 #     texts = [each["Text"] for each in data]
@@ -114,11 +116,9 @@ def to_question_pairs(dataloader, data_path):  # no balancing
 #                     q1_subset.append(q1["Text"])
 #                     q2_subset.append(q2["Text"])
 #                     label_subset.append(0)
-
 #                     neg += 1
 #                 if neg == pos:
 #                     break
-
 #             shuffled_list = list(zip(q1_subset,q2_subset,label_subset))
 #             random.shuffle(shuffled_list)
 #             for q1,q2,label in shuffled_list:
@@ -136,7 +136,6 @@ if __name__ == "__main__":
 
     # haptik
     dataset_names = ["curekart", "powerplay11", "sofmattress"]
-    # for train_subset in ["train"]:
     for train_subset in ["train", "subset_train"]:
         for dataset_name in dataset_names:
             # haptik train
@@ -160,36 +159,35 @@ if __name__ == "__main__":
                 data_subset=train_subset,
             )
 
-    # # dialogue intent
-    # dataset_names = ["banking", "clinc", "hwu"]
-    # # for train_subset in ["train"]:
-    # for train_subset in ["train", "train_5", "train_10"]:
-    #     for dataset_name in dataset_names:
-    #         # dialogue intent train
-    #         dl_train = DialogueIntentDataLoader(
-    #             dataset_name=dataset_name, data_type="train", data_subset=train_subset
-    #         )
-    #         train_dataloader, _ = dl_train.get_dataloader()
-    #         to_question_pairs(train_dataloader, data_path=dl_train.data_path)
-    #         # dialogue intent test
-    #         dl_test = DialogueIntentDataLoader(
-    #             dataset_name=dataset_name, data_type="test", data_subset="test"
-    #         )
-    #         test_dataloader, _ = dl_test.get_dataloader()
-    #         test_question_pairs(
-    #             train_dataloader=train_dataloader,
-    #             test_dataloader=test_dataloader,
-    #             data_path=dl_test.data_path,
-    #             data_subset=train_subset,
-    #         )
-    #         # dialogue intent val
-    #         dl_val = DialogueIntentDataLoader(
-    #             dataset_name=dataset_name, data_type="val", data_subset="val"
-    #         )
-    #         val_dataloader, _ = dl_val.get_dataloader()
-    #         test_question_pairs(
-    #             train_dataloader=train_dataloader,
-    #             test_dataloader=val_dataloader,
-    #             data_path=dl_val.data_path,
-    #             data_subset=train_subset,
-    #         )
+    # dialogue intent
+    dataset_names = ["banking", "clinc", "hwu"]
+    for train_subset in ["train", "train_5", "train_10"]:
+        for dataset_name in dataset_names:
+            # dialogue intent train
+            dl_train = DialogueIntentDataLoader(
+                dataset_name=dataset_name, data_type="train", data_subset=train_subset
+            )
+            train_dataloader, _ = dl_train.get_dataloader()
+            to_question_pairs(train_dataloader, data_path=dl_train.data_path)
+            # dialogue intent test
+            dl_test = DialogueIntentDataLoader(
+                dataset_name=dataset_name, data_type="test", data_subset="test"
+            )
+            test_dataloader, _ = dl_test.get_dataloader()
+            test_question_pairs(
+                train_dataloader=train_dataloader,
+                test_dataloader=test_dataloader,
+                data_path=dl_test.data_path,
+                data_subset=train_subset,
+            )
+            # dialogue intent val
+            dl_val = DialogueIntentDataLoader(
+                dataset_name=dataset_name, data_type="val", data_subset="val"
+            )
+            val_dataloader, _ = dl_val.get_dataloader()
+            test_question_pairs(
+                train_dataloader=train_dataloader,
+                test_dataloader=val_dataloader,
+                data_path=dl_val.data_path,
+                data_subset=train_subset,
+            )
