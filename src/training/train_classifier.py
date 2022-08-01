@@ -166,99 +166,99 @@ class BertBasedClassifier:
         return true_labels_test, prediction_labels_test, pred_probs
 
 
-def evaluate_bert_classifier(config):
-    data_source = config["DATASETS"]["DATASET_SOURCE"]
-    dataset_name = config["DATASETS"]["DATASET_NAME"]
-    data_subset = config["DATASETS"]["DATA_SUBSET"]
-    num_labels = config["DATASETS"]["N_LABELS"]
+# def evaluate_bert_classifier(config):
+#     data_source = config["DATASETS"]["DATASET_SOURCE"]
+#     dataset_name = config["DATASETS"]["DATASET_NAME"]
+#     data_subset = config["DATASETS"]["DATA_SUBSET"]
+#     num_labels = config["DATASETS"]["N_LABELS"]
 
-    model_name = config["TRAINING"]["MODEL_NAME"]
-    batch_size = config["TRAINING"]["BATCH_SIZE"]
+#     model_name = config["TRAINING"]["MODEL_NAME"]
+#     batch_size = config["TRAINING"]["BATCH_SIZE"]
 
-    dataloader = get_dataloader_class(config)
-    dl_train = dataloader(
-        data_source=data_source,
-        dataset_name=dataset_name,
-        data_type="train",
-        data_subset=data_subset,
-    )
+#     dataloader = get_dataloader_class(config)
+#     dl_train = dataloader(
+#         data_source=data_source,
+#         dataset_name=dataset_name,
+#         data_type="train",
+#         data_subset=data_subset,
+#     )
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+#     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-    train_dataloader, val_dataloader = dl_train.get_dataloader(
-        batch_size=batch_size, tokenizer=tokenizer, val_split_pct=0.2
-    )
+#     train_dataloader, val_dataloader = dl_train.get_dataloader(
+#         batch_size=batch_size, tokenizer=tokenizer, val_split_pct=0.2
+#     )
 
-    bert_classifier = BertBasedClassifier(model_name=model_name, num_labels=num_labels)
+#     bert_classifier = BertBasedClassifier(model_name=model_name, num_labels=num_labels)
 
-    finetuned_model_name = bert_classifier.train(
-        config, train_dataloader, val_dataloader
-    )
-    print(finetuned_model_name)
+#     finetuned_model_name = bert_classifier.train(
+#         config, train_dataloader, val_dataloader
+#     )
+#     print(finetuned_model_name)
 
-    dl_test = dataloader(
-        data_source=data_source,
-        dataset_name=dataset_name,
-        data_type="test",
-        intent_label_to_idx=dl_train.dataset.intent_label_to_idx,
-    )
+#     dl_test = dataloader(
+#         data_source=data_source,
+#         dataset_name=dataset_name,
+#         data_type="test",
+#         intent_label_to_idx=dl_train.dataset.intent_label_to_idx,
+#     )
 
-    test_dataloader, _ = dl_test.get_dataloader(
-        batch_size=batch_size, tokenizer=tokenizer
-    )
+#     test_dataloader, _ = dl_test.get_dataloader(
+#         batch_size=batch_size, tokenizer=tokenizer
+#     )
 
-    true_labels_test, prediction_labels_test, pred_probs = bert_classifier.predict(
-        test_dataloader
-    )
+#     true_labels_test, prediction_labels_test, pred_probs = bert_classifier.predict(
+#         test_dataloader
+#     )
 
-    true_labels_test = [[i] for i in true_labels_test]
+#     true_labels_test = [[i] for i in true_labels_test]
 
-    oos_label_indx = None
-    if config["EVALUATION"]["CHECK_OOS_ACCURACY"]:
-        oos_label_indx = dl_train.dataset.intent_label_to_idx[
-            config["DATASETS"]["OOS_CLASS_NAME"]
-        ]
+#     oos_label_indx = None
+#     if config["EVALUATION"]["CHECK_OOS_ACCURACY"]:
+#         oos_label_indx = dl_train.dataset.intent_label_to_idx[
+#             config["DATASETS"]["OOS_CLASS_NAME"]
+#         ]
 
-    eval_metrics = run_evaluation_metrics(
-        config, true_labels_test, prediction_labels_test, pred_probs, oos_label_indx
-    )
+#     eval_metrics = run_evaluation_metrics(
+#         config, true_labels_test, prediction_labels_test, pred_probs, oos_label_indx
+#     )
 
-    return eval_metrics
+#     return eval_metrics
 
 
-def evaluate_bert_classifier_embeddings(config):
-    data_source = config["DATASETS"]["DATASET_SOURCE"]
-    dataset_name = config["DATASETS"]["DATASET_NAME"]
-    data_subset = config["DATASETS"]["DATA_SUBSET"]
-    num_labels = config["DATASETS"]["N_LABELS"]
+# def evaluate_bert_classifier_embeddings(config):
+#     data_source = config["DATASETS"]["DATASET_SOURCE"]
+#     dataset_name = config["DATASETS"]["DATASET_NAME"]
+#     data_subset = config["DATASETS"]["DATA_SUBSET"]
+#     num_labels = config["DATASETS"]["N_LABELS"]
 
-    model_name = config["TRAINING"]["MODEL_NAME"]
-    batch_size = config["TRAINING"]["BATCH_SIZE"]
+#     model_name = config["TRAINING"]["MODEL_NAME"]
+#     batch_size = config["TRAINING"]["BATCH_SIZE"]
 
-    dataloader = get_dataloader_class(config)
-    dl_train = dataloader(
-        data_source=data_source,
-        dataset_name=dataset_name,
-        data_type="train",
-        data_subset=data_subset,
-    )
+#     dataloader = get_dataloader_class(config)
+#     dl_train = dataloader(
+#         data_source=data_source,
+#         dataset_name=dataset_name,
+#         data_type="train",
+#         data_subset=data_subset,
+#     )
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+#     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-    train_dataloader, val_dataloader = dl_train.get_dataloader(
-        batch_size=batch_size, tokenizer=tokenizer, val_split_pct=0.2
-    )
+#     train_dataloader, val_dataloader = dl_train.get_dataloader(
+#         batch_size=batch_size, tokenizer=tokenizer, val_split_pct=0.2
+#     )
 
-    bert_classifier = BertBasedClassifier(model_name=model_name, num_labels=num_labels)
+#     bert_classifier = BertBasedClassifier(model_name=model_name, num_labels=num_labels)
 
-    finetuned_model_name = bert_classifier.train(
-        config, train_dataloader, val_dataloader
-    )
-    print(finetuned_model_name)
-    config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
-    config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
-    config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
-    config["EVALUATION"]["MODEL_NAME"] = finetuned_model_name
-    eval_metrics = evaluate(config)
+#     finetuned_model_name = bert_classifier.train(
+#         config, train_dataloader, val_dataloader
+#     )
+#     print(finetuned_model_name)
+#     config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
+#     config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
+#     config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
+#     config["EVALUATION"]["MODEL_NAME"] = finetuned_model_name
+#     eval_metrics = evaluate(config)
 
-    return eval_metrics
+#     return eval_metrics

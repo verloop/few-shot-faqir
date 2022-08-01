@@ -62,5 +62,3 @@ EMBEDDINGS:
   EMBEDDING_TYPE : "dense"
   # If sparse embedding is used, specify "tfidf-word"/"tfidf-char"/"cv"
   SPARSE_EMB_METHOD: "tfidf-word"
-  # Specify a model name which is implemented via Huggingface - "bert-base-uncased" / "models/convbert" (DialoGLUE convbert model) / "sentence-transformers/all-MiniLM-L6-v2"
-  # MODEL_NAME : "bert-base-uncased"
