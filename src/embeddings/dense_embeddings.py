@@ -10,13 +10,19 @@ from transformers import AutoModel, AutoTokenizer
 
 
 class DenseEmbeddings:
-    def __init__(self, model_name="bert-base-uncased", device="cuda"):
+    def __init__(
+        self,
+        model_name="bert-base-uncased",
+        tokenizer_model_name="bert-base-uncased",
+        device="cuda",
+    ):
         self.model_name = model_name
+        self.tokenizer_model_name = tokenizer_model_name
         self.device = torch.device(device)
         self.load_model()
 
     def load_model(self):
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_model_name)
         self.model = AutoModel.from_pretrained(self.model_name)
         self.model.to(self.device)
         self.model.eval()
