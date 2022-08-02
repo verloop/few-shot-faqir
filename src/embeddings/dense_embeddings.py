@@ -13,11 +13,14 @@ class DenseEmbeddings:
     def __init__(
         self,
         model_name="bert-base-uncased",
-        tokenizer_model_name="bert-base-uncased",
+        tokenizer_model_name=None,
         device="cuda",
     ):
         self.model_name = model_name
-        self.tokenizer_model_name = tokenizer_model_name
+        if tokenizer_model_name:
+            self.tokenizer_model_name = tokenizer_model_name
+        else:
+            self.tokenizer_model_name = self.model_name
         self.device = torch.device(device)
         self.load_model()
 
@@ -98,7 +101,7 @@ class FasttextEmbeddings:
         return embeddings
 
 
-class GlovetEmbeddings:
+class GloveEmbeddings:
     def __init__(self, model_path):
         self.model_path = model_path
         self.load_model()
