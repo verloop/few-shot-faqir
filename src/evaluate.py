@@ -15,7 +15,7 @@ def evaluate(config):
     if config["EVALUATION"]["EVALUATION_METHOD"] == "BERT_EMBEDDINGS":
         eval_metrics = evaluate_bert_embeddings(config)
 
-    elif config["EVALUATION"]["EVALUATION_METHOD"] in [  
+    elif config["EVALUATION"]["EVALUATION_METHOD"] in [
         "TFIDF_WORD_EMBEDDINGS",
         "TFIDF_CHAR_EMBEDDINGS",
         "CV_EMBEDDINGS",
