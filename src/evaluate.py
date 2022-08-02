@@ -1,8 +1,8 @@
 import yaml
 
 from src.evaluation.evaluate_bert_classifier import evaluate_bert_classifier
-from src.evaluation.evaluate_bert_embs import evaluate_bert_embeddings
 from src.evaluation.evaluate_bert_cross_encoder import evaluate_bert_crossencoder
+from src.evaluation.evaluate_bert_embs import evaluate_bert_embeddings
 from src.evaluation.evaluate_bm25 import evaluate_bm25
 from src.evaluation.evaluate_fasttext import evaluate_fasttext
 from src.evaluation.evaluate_glove import evaluate_glove
@@ -15,7 +15,7 @@ def evaluate(config):
     if config["EVALUATION"]["EVALUATION_METHOD"] == "BERT_EMBEDDINGS":
         eval_metrics = evaluate_bert_embeddings(config)
 
-    elif config["EVALUATION"]["EVALUATION_METHOD"] in [ # isort:skip
+    elif config["EVALUATION"]["EVALUATION_METHOD"] in [  
         "TFIDF_WORD_EMBEDDINGS",
         "TFIDF_CHAR_EMBEDDINGS",
         "CV_EMBEDDINGS",
