@@ -17,6 +17,7 @@ def train(config):
     data_subset = config["DATASETS"]["DATA_SUBSET"]
     batch_size = config["TRAINING"]["BATCH_SIZE"]
     num_labels = config["DATASETS"]["N_LABELS"]
+
     dl_train = dataloader(
         data_source=data_source,
         dataset_name=dataset_name,
@@ -32,10 +33,7 @@ def train(config):
         )
         model_folder = trainer.train(train_dataloader, val_dataloader)
         print(model_folder)
-        config["EVALUATION"]["MODEL_NAME"] = model_folder
-        config["EVALUATION"]["EVALUATION_METHOD"] == "EMBEDDINGS"
-        eval_metrics = evaluate(config)
-        return eval_metrics
+        return model_folder
 
     if config["TRAINING"]["MODEL_TYPE"] == "CROSS_ENCODER":
         print("Training and evaluation with Cross Encoder")
@@ -45,14 +43,10 @@ def train(config):
             batch_size=batch_size,
             val_split_pct=config["TRAINING"]["VALIDATION_SPLIT"],
         )
-        val_dataloader = None
         trainer = CrossEncoderModelTrainer(config)
         model_folder = trainer.train(train_dataloader, val_dataloader)
         print(model_folder)
-        config["EVALUATION"]["MODEL_NAME"] = model_folder
-        config["EVALUATION"]["EVALUATION_METHOD"] == "CROSS_ENCODER"
-        eval_metrics = evaluate(config)
-        return eval_metrics
+        return model_folder
 
     if config["TRAINING"]["MODEL_TYPE"] == "SBERT_CROSS_ENCODER":
         print("Training and evaluation with sbert cross encoder")
@@ -62,9 +56,7 @@ def train(config):
         )
         model_folder = trainer.train(train_dataloader, val_dataloader)
         print(model_folder)
-        config["EVALUATION"]["MODEL_NAME"] = model_folder
-        eval_metrics = evaluate(config)
-        return eval_metrics
+        return model_folder
 
     if config["TRAINING"]["MODEL_TYPE"] == "CLASSIFIER":
         print("Training with classifier")
@@ -77,15 +69,11 @@ def train(config):
         )
         model_folder = bert_classifier.train(config, train_dataloader, val_dataloader)
         print(model_folder)
-        config["EVALUATION"]["MODEL_NAME"] = model_folder
-        config["EMBEDDINGS"]["EMBEDDING_TYPE"] = "dense"
-        config["EVALUATION"]["EVALUATION_METHOD"] = "EMBEDDINGS"
-        config["EMBEDDINGS"]["USE_BM25_FASTTEXT_GLOVE"] = False
-        eval_metrics = evaluate(config)
-        return eval_metrics
+        return model_folder
 
 
 if __name__ == "__main__":
     with open("src/config/config.yaml", "r") as yamlfile:
         config = yaml.load(yamlfile, Loader=yaml.FullLoader)
-        train(config)
+
+    train(config)
