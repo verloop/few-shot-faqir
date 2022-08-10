@@ -1,24 +1,32 @@
 # Training script for bi-encoder
+import math
+import os
+import time
+from unittest import TextTestRunner
+
+import numpy as np
+import torch
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+from sklearn.preprocessing import normalize
+
+from src.utils.utils import save_yaml
+
 from sentence_transformers import (  # isort:skip
     SentenceTransformer,
     losses,
     models,
 )
-import math
-import time
-
-import torch
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-
-from src.utils.utils import save_yaml
 
 
 class BiEncoderModelTrainer:
-    def __init__(self, config, do_lower_case=True, device="cuda"):
+    def __init__(
+        self, config, do_lower_case=True, device="cuda", embedding_batch_size=32
+    ):
         self.config = config
         self.model_name_or_path = self.config["TRAINING"]["MODEL_NAME"]
         self.do_lower_case = do_lower_case
         self.device_str = device
+        self.embedding_batch_size = embedding_batch_size
         self.device = torch.device(device)
         self.word_embedding_model = models.Transformer(
             self.model_name_or_path, do_lower_case=self.do_lower_case
@@ -64,7 +72,46 @@ class BiEncoderModelTrainer:
 
         return sentences_1, sentences_2, labels
 
-    def train(self, train_dataloader, val_dataloader=None):
+    def save_client_weights(self, output_dir):
+        model_save_path = os.path.join(output_dir, "classifiers")
+        os.makedirs(model_save_path, exist_ok=True)
+        layers_config = self.layers_to_train
+        for model_layer_name, model_layer in layers_config.items():
+            torch.save(
+                model_layer.state_dict(),
+                f"{model_save_path}/{model_layer_name}",
+            )
+            del model_layer_name, model_layer
+        print("Saved client weights")
+        del model_save_path
+        self.model = self.model.to(self.device)
+
+    def gen_embeddings(self, texts, labels, output_dir):
+        """
+        Generates embeddings for all questions and saves all faq data as npy files
+        """
+        self.model.eval()
+        embeddings = self.model.encode(
+            texts,
+            batch_size=self.embedding_batch_size,
+            convert_to_numpy=True,
+        )
+        embeddings_normalized = normalize(embeddings, axis=1)
+        os.makedirs(output_dir, exist_ok=True)
+        np.save(
+            os.path.join(output_dir, self.config["INFERENCE"]["EMBEDDING_FILE_NAME"]),
+            embeddings_normalized,
+        )
+        np.save(
+            os.path.join(output_dir, self.config["INFERENCE"]["TEXTS_FILE_NAME"]),
+            texts,
+        )
+        np.save(
+            os.path.join(output_dir, self.config["INFERENCE"]["LABELS_FILE_NAME"]),
+            labels,
+        )
+
+    def train(self, texts, labels, train_dataloader, val_dataloader=None):
 
         NUM_ITERATIONS = self.config["TRAINING"]["NUM_ITERATIONS"]
         LEARNING_RATE = float(self.config["TRAINING"]["LEARNING_RATE"])
@@ -140,6 +187,13 @@ class BiEncoderModelTrainer:
 
         print(f"Time to train {str(time.time() - t1)}")
         save_yaml(self.config, TRAIN_OUTPUT_DIR)
+        inference_output_dir = (
+            self.config["INFERENCE"]["MODEL_DIR"]
+            + f"/clients/"
+            + self.config["DATASETS"]["DATASET_NAME"]
+        )
+        self.save_client_weights(inference_output_dir)
+        self.gen_embeddings(texts, labels, inference_output_dir)
 
         del warmup_steps, train_loss, train_dataloader, params
         return TRAIN_OUTPUT_DIR
