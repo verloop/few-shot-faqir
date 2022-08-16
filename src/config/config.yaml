@@ -13,7 +13,7 @@ DATASETS:
 TRAINING:
   # Model - type - CROSS_ENCODER / BI_ENCODER / CLASSIFIER / SBERT_CROSS_ENCODER
   MODEL_TYPE : "BI_ENCODER"
-  NUM_ITERATIONS : 10
+  NUM_ITERATIONS : 10000
   TRAIN_OUTPUT_DIR: "./models/"
   # Specify the model like "sentence-transformers/all-MiniLM-L6-v2" or "bert-base-uncased" /"cross-encoder/stsb-distilroberta-base"
   MODEL_NAME : "sentence-transformers/all-MiniLM-L6-v2"
@@ -57,10 +57,10 @@ EVALUATION:
 INFERENCE:
   CLIENT_SOURCE : "haptik"
   CLIENT_NAMES : ["curekart", "powerplay11"]
-  TEXT: "This is a demo text sentence"
+  INFERENCE_FILE_PATH: "data/inference.txt"
   MODEL_DIR: "models"
   MODEL_PATH: "sentence-transformers/all-MiniLM-L6-v2"
-  EMBEDDING_FILE_NAME: embeddings.npy
-  TEXTS_FILE_NAME: texts.npy
-  LABELS_FILE_NAME: labels.npy
+  EMBEDDING_FILE_NAME: "embeddings.npy"
+  TEXTS_FILE_NAME: "texts.npy"
+  LABELS_FILE_NAME: "labels.npy"
   LAYERS_TO_LOAD: [5]

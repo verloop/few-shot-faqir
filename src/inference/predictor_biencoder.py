@@ -105,9 +105,8 @@ class BiEncoderModelPredictor:
         print(f"Succesfully loaded client weights for {client_id}")
         return client_data
 
-    def predict(self, client_id, top_n=3):
+    def predict(self, client_id, utterance, top_n=3):
         base_npy_path = self.config["INFERENCE"]["MODEL_DIR"] + f"/clients/{client_id}"
-        utterance = self.config["INFERENCE"]["TEXT"]
         client_weights = self.load_client_data(client_id)
 
         with self.weights_lock:
