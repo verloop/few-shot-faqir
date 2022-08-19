@@ -3,7 +3,7 @@ DATASETS:
   DATASET_SOURCE: "haptik"
   # For Haptik - curekart / powerplay11 / sofmattress
   # For Dialogue - banking / clinc / hwu
-  DATASET_NAME: "curekart"
+  DATASET_NAME: "powerplay11"
   OOS_CLASS_NAME: "NO_NODES_DETECTED"
   # Subsets of train data to use. haptik - "train"/"subset_train", dialoglue - "train"/"train_5"/"train_10"
   DATA_SUBSET: "train"
@@ -12,14 +12,14 @@ DATASETS:
 # Training parameters only for BERT based models
 TRAINING:
   # Model - type - CROSS_ENCODER / BI_ENCODER / CLASSIFIER / SBERT_CROSS_ENCODER
-  MODEL_TYPE : "SBERT_CROSS_ENCODER"
+  MODEL_TYPE : "BI_ENCODER"
   NUM_ITERATIONS : 10000
   TRAIN_OUTPUT_DIR: "./models/"
   # Specify the model like "sentence-transformers/all-MiniLM-L6-v2" or "bert-base-uncased" /"cross-encoder/stsb-distilroberta-base"
-  MODEL_NAME : "bert-base-uncased"
-  TOKENIZER_NAME: "bert-base-uncased"
+  MODEL_NAME : "sentence-transformers/all-MiniLM-L6-v2"
+  TOKENIZER_NAME: "sentence-transformers/all-MiniLM-L6-v2"
   # Specify model layer to unfreeze - 11,5 etc
-  LAYERS_TO_UNFREEZE : [11]
+  LAYERS_TO_UNFREEZE : [5]
   # Specify a loss metric for Sentence Bert Bi-Encoder models - CosineSimilarityLoss / ContrastiveLoss
   LOSS_METRIC : "ContrastiveLoss"
   BATCH_SIZE : 16
@@ -52,3 +52,15 @@ EVALUATION:
   OOS_THRESHOLD : [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
   # Specify k values less than 10
   K_VAL : [1,2,3,5]
+
+
+INFERENCE:
+  CLIENT_SOURCE : "haptik"
+  CLIENT_NAMES : ["curekart", "powerplay11"]
+  INFERENCE_FILE_PATH: "data/inference.txt"
+  MODEL_DIR: "models"
+  MODEL_PATH: "sentence-transformers/all-MiniLM-L6-v2"
+  EMBEDDING_FILE_NAME: "embeddings.npy"
+  TEXTS_FILE_NAME: "texts.npy"
+  LABELS_FILE_NAME: "labels.npy"
+  LAYERS_TO_LOAD: [5]

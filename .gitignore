@@ -96,4 +96,6 @@ exclude models from source control by default
 
 # Mypy cache
 .mypy_cache/
-/data
+/data/cough/
+/data/dialoglue/
+/data/haptik/

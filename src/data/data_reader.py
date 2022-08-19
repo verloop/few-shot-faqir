@@ -31,14 +31,12 @@ class DialoglueIntentDataset(Dataset):
 
         # Process data
         self.examples = []
-        with open(data_path) as csvfile:
-            reader = csv.reader(csvfile)
-            next(reader, None)
+        self.df = pd.read_csv(data_path)
 
-            for utt, intent in tqdm(reader):
-                self.examples.append(
-                    {"Text": utt, "Label": self.intent_label_to_idx[intent]}
-                )
+        for row in self.df.itertuples(index=False):
+            self.examples.append(
+                {"Text": row.text, "Label": self.intent_label_to_idx[row.category]}
+            )
 
     def __len__(self):
         return len(self.examples)
@@ -87,8 +85,8 @@ class DialoglueTOPDataset(Dataset):
 
 class HapticDataset(Dataset):
     def __init__(self, data_path: str, intent_label_to_idx=None):
-        df = pd.read_csv(data_path)
-        intent_names = list(set(df["label"])) + ["NO_NODES_DETECTED"]
+        self.df = pd.read_csv(data_path)
+        intent_names = list(set(self.df["label"])) + ["NO_NODES_DETECTED"]
         if intent_label_to_idx:
             self.intent_label_to_idx = intent_label_to_idx
         else:
@@ -102,7 +100,7 @@ class HapticDataset(Dataset):
 
         self.examples = []
 
-        for row in df.itertuples(index=False):
+        for row in self.df.itertuples(index=False):
             self.examples.append(
                 {"Text": row.sentence, "Label": self.intent_label_to_idx[row.label]}
             )

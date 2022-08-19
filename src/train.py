@@ -31,7 +31,9 @@ def train(config):
         train_dataloader, val_dataloader = dl_train.get_qp_sbert_dataloader(
             batch_size=batch_size, val_split_pct=config["TRAINING"]["VALIDATION_SPLIT"]
         )
-        model_folder = trainer.train(train_dataloader, val_dataloader)
+        texts = list(dl_train.dataset.df["sentence"])
+        labels = list(dl_train.dataset.df["label"])
+        model_folder = trainer.train(texts, labels, train_dataloader, val_dataloader)
         print(model_folder)
         return model_folder
 
