@@ -3,7 +3,7 @@ DATASETS:
   DATASET_SOURCE: "haptik"
   # For Haptik - curekart / powerplay11 / sofmattress
   # For Dialogue - banking / clinc / hwu
-  DATASET_NAME: "powerplay11"
+  DATASET_NAME: "curekart"
   OOS_CLASS_NAME: "NO_NODES_DETECTED"
   # Subsets of train data to use. haptik - "train"/"subset_train", dialoglue - "train"/"train_5"/"train_10"
   DATA_SUBSET: "train"
@@ -31,10 +31,10 @@ TRAINING:
 # Evaluation for all methods including pre-trained models, BM25, Glove, Fasttext, finedtuned models etc
 EVALUATION:
   # Evaluation methods - BERT_EMBEDDINGS / BERT_CROSS_ENCODER / CLASSIFIER / SBERT_CROSS_ENCODER / BM25 / GLOVE / FASTTEXT / TFIDF_WORD_EMBEDDINGS / TFIDF_CHAR_EMBEDDINGS / CV_EMBEDDINGS
-  EVALUATION_METHOD : "SBERT_CROSS_ENCODER"
+  EVALUATION_METHOD : "BERT_EMBEDDINGS"
   # Model name for evaluation - # Specify a model name which is implemented via Huggingface - "bert-base-uncased" / "models/convbert" (DialoGLUE convbert model) / "sentence-transformers/all-MiniLM-L6-v2"
-  MODEL_NAME : "bert-base-uncased"
-  TOKENIZER_NAME: "bert-base-uncased"
+  MODEL_NAME : "sentence-transformers/all-MiniLM-L6-v2"
+  TOKENIZER_NAME: "sentence-transformers/all-MiniLM-L6-v2"
   BATCH_SIZE : 16
   # Glove & Fastext model paths
   FASTTEXT_MODEL_PATH: "models/fasttext_ecom_model_2.bin"

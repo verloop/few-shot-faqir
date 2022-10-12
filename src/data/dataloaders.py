@@ -14,6 +14,7 @@ from src.data.data_reader import (  # isort:skip
     QuestionPairDataset,
     QuestionPairSentBertDataset,
     QuestionPairTestTrainDataset,
+    QuestionPairChunkedSentBertDataset,
 )
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -200,6 +201,20 @@ class HaptikDataLoader:
             shuffle=shuffle,
             collate_fn=lambda b: collate_batch(b, tokenizer, is_qp),
         )
+
+
+class PretrainDataLoader:
+    def __init__(self, data_path="data/pretraining_question_pairs.csv"):
+        self.qp_data_path = data_path
+        print(f"Loading data from {data_path}")
+
+    def get_qp_sbert_dataloader(self, batch_size=4):
+        self.qp_dataset = QuestionPairChunkedSentBertDataset(self.qp_data_path)
+        train_dataloader = DataLoader(
+            self.qp_dataset,
+            batch_size=batch_size,
+        )
+        return train_dataloader
 
 
 class DialogueIntentDataLoader:

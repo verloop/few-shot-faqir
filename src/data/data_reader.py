@@ -1,10 +1,11 @@
+import chunk
 import csv
 import json
 import os
 
 import pandas as pd
 from sentence_transformers import InputExample
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, IterableDataset
 from tqdm import tqdm
 
 SPECIAL_TOKENS = {"[SEP]", "[CLS]", "[PAD]"}
@@ -115,8 +116,10 @@ class HapticDataset(Dataset):
 class QuestionPairDataset(Dataset):
     def __init__(self, data_path: str):
         df = pd.read_csv(data_path)
-        samples = min(len(df), 200000)
-        df = df.sample(n=samples)
+        if len(df) < 200000:
+            df = df.sample(n=200000, replace=True, random_state=42)
+        else:
+            df = df.sample(n=200000, random_state=42)
         self.examples = []
 
         for row in df.itertuples(index=False):
@@ -137,7 +140,6 @@ class QuestionPairTestTrainDataset(Dataset):
 
     def __init__(self, data_path: str):
         df = pd.read_csv(data_path)
-        # df= df.sample(n=10000)
         self.examples = []
 
         for row in df.itertuples(index=False):
@@ -154,10 +156,10 @@ class QuestionPairSentBertDataset(Dataset):
     def __init__(self, data_path: str):
         df = pd.read_csv(data_path)
         if len(df) < 200000:
-            df = df.sample(n=200000, replace=True)
+            df = df.sample(n=200000, replace=True, random_state=42)
         else:
             df = df.sample(
-                n=200000
+                n=200000, random_state=42
             )  # Addded for Sentence Bert cross encoder training which doesnt have STEPS_PER_EPOCH
         self.examples = []
 
@@ -172,3 +174,40 @@ class QuestionPairSentBertDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.examples[idx]
+
+
+class QuestionPairChunkedSentBertDataset(Dataset):
+    def __init__(self, data_path: str):
+        df_iter = pd.read_csv(data_path, chunksize=500)
+        self.examples = []
+        for df in df_iter:
+            for row in df.itertuples(index=False):
+                inp_example = InputExample(
+                    texts=[row.question1, row.question2], label=float(row.label)
+                )
+                self.examples.append(inp_example)
+
+    def __len__(self):
+        return len(self.examples)
+
+    def __getitem__(self, idx):
+        return self.examples[idx]
+
+
+class QuestionPairIterableSentBertDataset(IterableDataset):
+    def __init__(self, data_path: str):
+        self.filename = data_path
+
+    def __getitem__(self, idx):
+        return self.examples[idx]
+
+    def line_mapper(self, line):
+        line = line.replace("\n", "")
+        question1, question2, label = line.split(",")
+        inp_example = InputExample(texts=[question1, question2], label=float(label))
+        return inp_example
+
+    def __iter__(self):
+        file_itr = open(self.filename)
+        mapped_itr = map(self.line_mapper, file_itr)
+        return mapped_itr

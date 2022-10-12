@@ -31,8 +31,13 @@ def train(config):
         train_dataloader, val_dataloader = dl_train.get_qp_sbert_dataloader(
             batch_size=batch_size, val_split_pct=config["TRAINING"]["VALIDATION_SPLIT"]
         )
-        texts = list(dl_train.dataset.df["sentence"])
-        labels = list(dl_train.dataset.df["label"])
+        if config["DATASETS"]["DATASET_SOURCE"] == "haptik":
+            texts = list(dl_train.dataset.df["sentence"])
+            labels = list(dl_train.dataset.df["label"])
+        else:
+            texts = list(dl_train.dataset.df["text"])
+            labels = list(dl_train.dataset.df["category"])
+        val_dataloader = None  # To remove later
         model_folder = trainer.train(texts, labels, train_dataloader, val_dataloader)
         print(model_folder)
         return model_folder
