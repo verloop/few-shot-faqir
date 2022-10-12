@@ -67,7 +67,7 @@ class BiEncoderModelPreTrainer:
 
     def train(self, train_dataloader, val_dataloader=None):
 
-        NUM_ITERATIONS = 100000
+        NUM_ITERATIONS = 140000
         LEARNING_RATE = 2e-5
         SCHEDULER = "WarmupLinear"
         TRAIN_OUTPUT_DIR = "./models/" + str(int(time.time())) + "/"
