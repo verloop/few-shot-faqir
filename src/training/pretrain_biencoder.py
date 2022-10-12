@@ -67,7 +67,7 @@ class BiEncoderModelPreTrainer:
 
     def train(self, train_dataloader, val_dataloader=None):
 
-        NUM_ITERATIONS = 1000
+        NUM_ITERATIONS = 100000
         LEARNING_RATE = 2e-5
         SCHEDULER = "WarmupLinear"
         TRAIN_OUTPUT_DIR = "./models/" + str(int(time.time())) + "/"
@@ -87,6 +87,8 @@ class BiEncoderModelPreTrainer:
             train_loss = losses.CosineSimilarityLoss(model=self.model)
         elif LOSS_METRIC == "ContrastiveLoss":
             train_loss = losses.ContrastiveLoss(model=self.model)
+        elif LOSS_METRIC == "MarginMSELoss":
+            train_loss = losses.MarginMSELoss(model=self.model)
         else:
             print("Loss metric not supported")
             raise
@@ -115,7 +117,9 @@ class BiEncoderModelPreTrainer:
             steps_per_epoch=STEPS_PER_EPOCH,
             evaluation_steps=1000,
             warmup_steps=warmup_steps,
+            checkpoint_save_steps=20000,
             output_path=TRAIN_OUTPUT_DIR,
+            checkpoint_path=TRAIN_OUTPUT_DIR,
             optimizer_params={"lr": LEARNING_RATE},
             scheduler=SCHEDULER,
             optimizer_class=OPTIMIZER,

@@ -338,7 +338,7 @@ def generate_question_pairs_pretraining():
         train_dataloader, _ = dl_train.get_dataloader()
         dataloaders.append(train_dataloader)
     to_question_pairs_pretraing(
-        dataloaders, haptik_dataset_names + dialoglue_dataset_names, sample_size=30000
+        dataloaders, haptik_dataset_names + dialoglue_dataset_names, sample_size=100000
     )
 
 
