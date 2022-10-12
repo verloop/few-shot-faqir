@@ -119,7 +119,7 @@ class BiEncoderModelPreTrainer:
             warmup_steps=warmup_steps,
             checkpoint_save_steps=20000,
             output_path=TRAIN_OUTPUT_DIR,
-            checkpoint_path=TRAIN_OUTPUT_DIR,
+            checkpoint_path="./models/",
             optimizer_params={"lr": LEARNING_RATE},
             scheduler=SCHEDULER,
             optimizer_class=OPTIMIZER,
