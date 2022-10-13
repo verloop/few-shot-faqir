@@ -158,46 +158,114 @@ def to_question_pairs_sample(dataloader, data_path, sample_size=100000):
 
 
 def to_question_pairs_pretraing(
-    dataloaders, dataset_names, data_path="data/pretrain", sample_size=30000
+    dataloaders,
+    dataset_names,
+    data_path="data/pretrain",
+    sample_size=30000,
+    hard_sample=False,
 ):
     # Will cause memory overflow for large dataset
     for i, dataloader in enumerate(dataloaders):
         data = dataloader.dataset[:]
         texts = [each["Text"].lower() for each in data]
-        with open(
-            f"{data_path}/{dataset_names[i]}_question_pairs.csv", "w", newline=""
-        ) as f_output:
-            csv_output = csv.DictWriter(
-                f_output,
-                fieldnames=["question1", "question2", "label"],
-                delimiter=",",
-            )
-            csv_output.writeheader()
+        if hard_sample:
+            embeddings = model.encode(texts)
+            emb_dict = {i: j for i, j in zip(texts, embeddings)}
+            with open(
+                f"{data_path}/{dataset_names[i]}_question_pairs.csv", "w", newline=""
+            ) as f_output:
+                csv_output = csv.DictWriter(
+                    f_output,
+                    fieldnames=["question1", "question2", "label", "weights"],
+                    delimiter=",",
+                )
+                csv_output.writeheader()
 
-            for q1, q2 in itertools.combinations(data, 2):
-                if q1["Label"] == q2["Label"]:
-                    csv_output.writerow(
-                        {"question1": q1["Text"], "question2": q2["Text"], "label": 1}
-                    )
-                else:
-                    csv_output.writerow(
-                        {"question1": q1["Text"], "question2": q2["Text"], "label": 0}
-                    )
+                for q1, q2 in itertools.combinations(data, 2):
+                    if q1["Label"] == q2["Label"]:
+                        csv_output.writerow(
+                            {
+                                "question1": q1["Text"],
+                                "question2": q2["Text"],
+                                "label": 1,
+                                "weights": 1
+                                - get_sim(
+                                    emb_dict[q1["Text"].lower()],
+                                    emb_dict[q2["Text"].lower()],
+                                ),
+                            }
+                        )
+                    else:
+                        csv_output.writerow(
+                            {
+                                "question1": q1["Text"],
+                                "question2": q2["Text"],
+                                "label": 0,
+                                "weights": get_sim(
+                                    emb_dict[q1["Text"].lower()],
+                                    emb_dict[q2["Text"].lower()],
+                                ),
+                            }
+                        )
+        else:
+            with open(
+                f"{data_path}/{dataset_names[i]}_question_pairs.csv", "w", newline=""
+            ) as f_output:
+                csv_output = csv.DictWriter(
+                    f_output,
+                    fieldnames=["question1", "question2", "label"],
+                    delimiter=",",
+                )
+                csv_output.writeheader()
+
+                for q1, q2 in itertools.combinations(data, 2):
+                    if q1["Label"] == q2["Label"]:
+                        csv_output.writerow(
+                            {
+                                "question1": q1["Text"],
+                                "question2": q2["Text"],
+                                "label": 1,
+                            }
+                        )
+                    else:
+                        csv_output.writerow(
+                            {
+                                "question1": q1["Text"],
+                                "question2": q2["Text"],
+                                "label": 0,
+                            }
+                        )
         data = pd.read_csv(f"{data_path}/{dataset_names[i]}_question_pairs.csv")
         pos_data = data[data.label == 1]
         neg_data = data[data.label == 0]
-        sampled_pos = pos_data.sample(
-            n=int(sample_size / 2),
-            replace=True,
-            random_state=1,
-        )
-        sampled_neg = neg_data.sample(
-            n=int(sample_size / 2),
-            replace=True,
-            random_state=1,
-        )
+        if hard_sample:
+            sampled_pos = pos_data.sample(
+                n=int(sample_size / 2),
+                replace=True,
+                weights=pos_data["weights"],
+                random_state=1,
+            )
+            sampled_neg = neg_data.sample(
+                n=int(sample_size / 2),
+                replace=True,
+                weights=neg_data["weights"],
+                random_state=1,
+            )
+        else:
+            sampled_pos = pos_data.sample(
+                n=int(sample_size / 2),
+                replace=True,
+                random_state=1,
+            )
+            sampled_neg = neg_data.sample(
+                n=int(sample_size / 2),
+                replace=True,
+                random_state=1,
+            )
         sampled_data = pd.concat([sampled_pos, sampled_neg])
         sampled_data = sampled_data.sample(frac=1, random_state=1)
+        if hard_sample:
+            sampled_data = sampled_data.drop(columns=["weights"])
         sampled_data.to_csv(
             f"{data_path}/{dataset_names[i]}_question_pairs.csv",
             index=False,
@@ -338,7 +406,10 @@ def generate_question_pairs_pretraining():
         train_dataloader, _ = dl_train.get_dataloader()
         dataloaders.append(train_dataloader)
     to_question_pairs_pretraing(
-        dataloaders, haptik_dataset_names + dialoglue_dataset_names, sample_size=100000
+        dataloaders,
+        haptik_dataset_names + dialoglue_dataset_names,
+        sample_size=100000,
+        hard_sample=True,
     )
 
 
