@@ -20,7 +20,8 @@ from sentence_transformers import (  # isort:skip
 
 class BiEncoderModelPreTrainer:
     def __init__(self, do_lower_case=True, device="cuda"):
-        self.model_name_or_path = "sentence-transformers/all-MiniLM-L6-v2"
+        # self.model_name_or_path = "sentence-transformers/all-MiniLM-L6-v2"
+        self.model_name_or_path = "nreimers/MiniLM-L6-H384-uncased"
         self.do_lower_case = do_lower_case
         self.device_str = device
         self.device = torch.device(device)
