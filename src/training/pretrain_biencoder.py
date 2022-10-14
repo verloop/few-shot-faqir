@@ -20,8 +20,8 @@ from sentence_transformers import (  # isort:skip
 
 class BiEncoderModelPreTrainer:
     def __init__(self, do_lower_case=True, device="cuda"):
-        # self.model_name_or_path = "sentence-transformers/all-MiniLM-L6-v2"
-        self.model_name_or_path = "nreimers/MiniLM-L6-H384-uncased"
+        self.model_name_or_path = "sentence-transformers/all-MiniLM-L6-v2"
+        # self.model_name_or_path = "nreimers/MiniLM-L6-H384-uncased"
         self.do_lower_case = do_lower_case
         self.device_str = device
         self.device = torch.device(device)
@@ -79,7 +79,7 @@ class BiEncoderModelPreTrainer:
         if STEPS_PER_EPOCH * NUM_TRAIN_EPOCHS > NUM_ITERATIONS:
             STEPS_PER_EPOCH = math.ceil(NUM_ITERATIONS / NUM_TRAIN_EPOCHS)
 
-        LOSS_METRIC = "ContrastiveLoss"
+        LOSS_METRIC = "TripletLoss"
         self.model.train()
         # Freeze weights
         params = list(self.word_embedding_model.auto_model.named_parameters())
@@ -90,6 +90,12 @@ class BiEncoderModelPreTrainer:
             train_loss = losses.ContrastiveLoss(model=self.model)
         elif LOSS_METRIC == "MarginMSELoss":
             train_loss = losses.MarginMSELoss(model=self.model)
+        elif LOSS_METRIC == "TripletLoss":
+            train_loss = losses.TripletLoss(
+                model=self.model,
+                distance_metric=losses.TripletDistanceMetric.COSINE,
+                triplet_margin=0.15,
+            )
         else:
             print("Loss metric not supported")
             raise

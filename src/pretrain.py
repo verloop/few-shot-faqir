@@ -9,7 +9,7 @@ from src.training.pretrain_biencoder import BiEncoderModelPreTrainer
 def pretrain():
 
     dl_train = PretrainDataLoader()
-    train_dataloader = dl_train.get_qp_sbert_dataloader(batch_size=32)
+    train_dataloader = dl_train.get_triplets_sbert_dataloader(batch_size=32)
     trainer = BiEncoderModelPreTrainer()
 
     model_folder = trainer.train(train_dataloader)

@@ -15,6 +15,7 @@ from src.data.data_reader import (  # isort:skip
     QuestionPairSentBertDataset,
     QuestionPairTestTrainDataset,
     QuestionPairChunkedSentBertDataset,
+    TripletsChunkedSentBertDataset,
 )
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -204,12 +205,26 @@ class HaptikDataLoader:
 
 
 class PretrainDataLoader:
-    def __init__(self, data_path="data/pretraining_question_pairs.csv"):
-        self.qp_data_path = data_path
-        print(f"Loading data from {data_path}")
+    def __init__(
+        self,
+        qp_data_path="data/pretraining_question_pairs.csv",
+        triplet_path="data/pretraining_question_triplets.csv",
+    ):
+        self.qp_data_path = qp_data_path
+        self.triplet_path = triplet_path
 
     def get_qp_sbert_dataloader(self, batch_size=4):
+        print(f"Loading data from {self.qp_data_path}")
         self.qp_dataset = QuestionPairChunkedSentBertDataset(self.qp_data_path)
+        train_dataloader = DataLoader(
+            self.qp_dataset,
+            batch_size=batch_size,
+        )
+        return train_dataloader
+
+    def get_triplets_sbert_dataloader(self, batch_size=4):
+        print(f"Loading data from {self.triplet_path}")
+        self.qp_dataset = TripletsChunkedSentBertDataset(self.triplet_path)
         train_dataloader = DataLoader(
             self.qp_dataset,
             batch_size=batch_size,

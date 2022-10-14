@@ -194,6 +194,24 @@ class QuestionPairChunkedSentBertDataset(Dataset):
         return self.examples[idx]
 
 
+class TripletsChunkedSentBertDataset(Dataset):
+    def __init__(self, data_path: str):
+        df_iter = pd.read_csv(data_path, chunksize=500)
+        self.examples = []
+        for df in df_iter:
+            for row in df.itertuples(index=False):
+                inp_example = InputExample(
+                    texts=[row.anchor, row.positive, row.negative]
+                )
+                self.examples.append(inp_example)
+
+    def __len__(self):
+        return len(self.examples)
+
+    def __getitem__(self, idx):
+        return self.examples[idx]
+
+
 class QuestionPairIterableSentBertDataset(IterableDataset):
     def __init__(self, data_path: str):
         self.filename = data_path
