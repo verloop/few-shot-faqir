@@ -285,7 +285,6 @@ def to_question_triplets(
         {"anchor": triplet_anchor, "positive": triplet_pos, "negative": triplet_neg}
     )
     n = min(sample_size, len(sampled_data))
-    print(f"n={n}")
     sampled_data = sampled_data.sample(n=n, random_state=1)
     if val_split > 0:
         train_samples = int(len(sampled_data) * (1 - val_split))

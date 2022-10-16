@@ -15,7 +15,10 @@ from src.data.data_reader import (  # isort:skip
     QuestionPairSentBertDataset,
     QuestionPairTestTrainDataset,
     QuestionPairChunkedSentBertDataset,
-    TripletsChunkedSentBertDataset,
+    QuestionTripletsChunkedSentBertDataset,
+    HapticSbertDataset,
+    QuestionTripletsSentBertDataset,
+    DialoglueSbertIntentDataset,
 )
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -68,7 +71,7 @@ class HaptikDataLoader:
         data_source="haptik",
         dataset_name="curekart",
         data_type="train",
-        data_subset="train",
+        data_subset="train",  # train, train_5,train_10,subset_train
         intent_label_to_idx=None,
     ):
         if data_type == "train":
@@ -80,9 +83,12 @@ class HaptikDataLoader:
                 f"data/{data_source}/v1/{data_type}/{dataset_name}_{data_type}.csv"
             )
         self.qp_data_path = f"data/{data_source}/v1/{data_type}/{dataset_name}_{data_type}_question_pairs.csv"
-        self.qp_test_data_path = f"data/{data_source}/v1/{data_type}/{dataset_name}_{data_type}_{data_subset}_question_pairs.csv"
-        print(f"Loading data from {self.data_path}")
-        self.dataset = HapticDataset(self.data_path, intent_label_to_idx)
+        self.triplet_data_path = f"data/{data_source}/v1/train/{dataset_name}_{data_subset}_{data_type}_question_triplets.csv"
+        self.qp_test_data_path = f"data/{data_source}/v1/test/{dataset_name}_test_{data_subset}_question_pairs.csv"
+
+        if data_type in ["train", "test"]:
+            print(f"Loading data from {self.data_path}")
+            self.dataset = HapticDataset(self.data_path, intent_label_to_idx)
 
     def train_test_split(self, dataset, val_split_pct):
         train_split = int((1 - val_split_pct) * len(dataset))
@@ -125,6 +131,32 @@ class HaptikDataLoader:
                 batch_size=batch_size,
                 shuffle=shuffle,
                 collate_fn=lambda b: collate_batch(b, tokenizer),
+            )
+            return train_dataloader, val_dataloader
+
+    def get_sbert_dataloader(self, batch_size=4, shuffle=True, val_split_pct=0):
+        self.sbert_dataset = HapticSbertDataset(self.data_path)
+        if val_split_pct == 0:
+            train_dataloader = DataLoader(
+                self.sbert_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+            )
+            val_dataloader = None
+            return train_dataloader, val_dataloader
+        else:
+            train_dataset, val_dataset = self.train_test_split(
+                self.qp_dataset, val_split_pct
+            )
+            train_dataloader = DataLoader(
+                train_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+            )
+            val_dataloader = DataLoader(
+                val_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
             )
             return train_dataloader, val_dataloader
 
@@ -190,6 +222,14 @@ class HaptikDataLoader:
             )
             return train_dataloader, val_dataloader
 
+    def get_triplet_sbert_dataloader(self, batch_size=4, shuffle=False):
+        self.qp_triplet_dataset = QuestionTripletsSentBertDataset(
+            self.triplet_data_path
+        )
+        return DataLoader(
+            self.qp_triplet_dataset, batch_size=batch_size, shuffle=shuffle
+        )
+
     def get_crossencoder_test_dataloader(
         self, tokenizer: AutoTokenizer = None, is_qp=True, batch_size=4, shuffle=False
     ):
@@ -205,13 +245,9 @@ class HaptikDataLoader:
 
 
 class PretrainDataLoader:
-    def __init__(
-        self,
-        qp_data_path="data/pretraining_question_pairs.csv",
-        triplet_path="data/pretraining_question_triplets.csv",
-    ):
-        self.qp_data_path = qp_data_path
-        self.triplet_path = triplet_path
+    def __init__(self, data_set="train"):
+        self.qp_data_path = f"data/pretraining_{data_set}_question_pairs.csv"
+        self.triplet_path = f"data/pretraining_{data_set}_question_triplets.csv"
 
     def get_qp_sbert_dataloader(self, batch_size=4):
         print(f"Loading data from {self.qp_data_path}")
@@ -224,7 +260,7 @@ class PretrainDataLoader:
 
     def get_triplets_sbert_dataloader(self, batch_size=4):
         print(f"Loading data from {self.triplet_path}")
-        self.qp_dataset = TripletsChunkedSentBertDataset(self.triplet_path)
+        self.qp_dataset = QuestionTripletsChunkedSentBertDataset(self.triplet_path)
         train_dataloader = DataLoader(
             self.qp_dataset,
             batch_size=batch_size,
@@ -246,7 +282,7 @@ class DialogueIntentDataLoader:
             f"data/{data_source}/{dataset_name}/{data_subset}_question_pairs.csv"
         )
         self.qp_test_data_path = f"data/{data_source}/{dataset_name}/{data_type}_{data_subset}_question_pairs.csv"
-
+        self.triplet_data_path = f"data/{data_source}/{dataset_name}/{data_subset}_{data_type}_question_triplets.csv"
         self.dataset = DialoglueIntentDataset(self.data_path, intent_label_to_idx)
 
     def train_test_split(self, dataset, val_split_pct):
@@ -294,6 +330,32 @@ class DialogueIntentDataLoader:
             )
             return train_dataloader, val_dataloader
 
+    def get_sbert_dataloader(self, batch_size=4, shuffle=True, val_split_pct=0):
+        self.sbert_dataset = DialoglueSbertIntentDataset(self.data_path)
+        if val_split_pct == 0:
+            train_dataloader = DataLoader(
+                self.sbert_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+            )
+            val_dataloader = None
+            return train_dataloader, val_dataloader
+        else:
+            train_dataset, val_dataset = self.train_test_split(
+                self.qp_dataset, val_split_pct
+            )
+            train_dataloader = DataLoader(
+                train_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+            )
+            val_dataloader = DataLoader(
+                val_dataset,
+                batch_size=batch_size,
+                shuffle=shuffle,
+            )
+            return train_dataloader, val_dataloader
+
     def get_qp_dataloader(
         self,
         batch_size=16,
@@ -357,6 +419,14 @@ class DialogueIntentDataLoader:
                 shuffle=shuffle,
             )
             return train_dataloader, val_dataloader
+
+    def get_triplet_sbert_dataloader(self, batch_size=4, shuffle=False):
+        self.qp_triplet_dataset = QuestionTripletsSentBertDataset(
+            self.triplet_data_path
+        )
+        return DataLoader(
+            self.qp_triplet_dataset, batch_size=batch_size, shuffle=shuffle
+        )
 
     def get_crossencoder_test_dataloader(
         self, tokenizer: AutoTokenizer = None, is_qp=True, batch_size=4, shuffle=False
