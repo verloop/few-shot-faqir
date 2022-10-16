@@ -173,13 +173,11 @@ def to_question_triplets_pretraing(
             sampled_data_val.to_csv(
                 f"{data_path}/{dataset_names[i]}_val_question_triplets.csv",
                 index=False,
-                header=False,
             )
 
         sampled_data.to_csv(
             f"{data_path}/{dataset_names[i]}_train_question_triplets.csv",
             index=False,
-            header=False,
         )
     write_pretraining_triplets(data_path, sample_size, data_set="train")
     if val_split > 0:
@@ -212,6 +210,8 @@ def write_pretraining_triplets(data_path, sample_size, data_set):
                     )
                 except:
                     continue
+                if data.empty:
+                    continue
                 data.columns = ["anchor", "positive", "negative"]
                 if len(data_full) == 0:
                     data_full = data
@@ -219,6 +219,8 @@ def write_pretraining_triplets(data_path, sample_size, data_set):
                     data_full = pd.concat([data_full, data])
             total_read = total_read + chunk_size
             skip_rows = total_read
+            if len(data_full) == 0:
+                continue
             data_full = data_full.sample(frac=1)
             data_full = data_full[["anchor", "positive", "negative"]]
             for row in data_full.itertuples(index=False):
@@ -380,7 +382,6 @@ def write_pretraining_question_pairs(data_path, sample_size, data_set):
         while total_read < sample_size:
             data_full = pd.DataFrame()
             for datasets in glob.glob(f"{data_path}/*{data_set}_question_pairs.csv"):
-                print(datasets)
                 try:
                     data = pd.read_csv(
                         datasets, nrows=chunk_size, skiprows=skip_rows, header=None
