@@ -6,10 +6,15 @@ from unittest import TextTestRunner
 
 import numpy as np
 import torch
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sklearn.preprocessing import normalize
 
 from src.utils.utils import save_yaml
+
+from sentence_transformers.evaluation import (  # isort:skip
+    EmbeddingSimilarityEvaluator,
+    TripletEvaluator,
+)
+
 
 from sentence_transformers import (  # isort:skip
     SentenceTransformer,
@@ -20,8 +25,8 @@ from sentence_transformers import (  # isort:skip
 
 class BiEncoderModelPreTrainer:
     def __init__(self, do_lower_case=True, device="cuda"):
-        self.model_name_or_path = "sentence-transformers/all-MiniLM-L6-v2"
-        # self.model_name_or_path = "nreimers/MiniLM-L6-H384-uncased"
+        # self.model_name_or_path = "sentence-transformers/all-MiniLM-L6-v2"
+        self.model_name_or_path = "sentence-transformers/all-mpnet-base-v2"
         self.do_lower_case = do_lower_case
         self.device_str = device
         self.device = torch.device(device)
@@ -51,20 +56,35 @@ class BiEncoderModelPreTrainer:
         :return:
             a batch of tensors for the model
         """
-        num_texts = len(batch[0].texts)
-        texts = [[] for _ in range(num_texts)]
-        labels = []
+        if self.loss_metric == "ContrastiveLoss":
+            num_texts = len(batch[0].texts)
+            texts = [[] for _ in range(num_texts)]
+            labels = []
 
-        for example in batch:
-            for idx, text in enumerate(example.texts):
-                texts[idx].append(text)
+            for example in batch:
+                for idx, text in enumerate(example.texts):
+                    texts[idx].append(text)
 
-            labels = labels + [example.label]
+                labels = labels + [example.label]
 
-        sentences_1 = texts[0]
-        sentences_2 = texts[1]
+            sentences_1 = texts[0]
+            sentences_2 = texts[1]
 
-        return sentences_1, sentences_2, labels
+            return sentences_1, sentences_2, labels
+        else:
+            num_texts = len(batch[0].texts)
+            texts = [[] for _ in range(num_texts)]
+            labels = []
+
+            for example in batch:
+                for idx, text in enumerate(example.texts):
+                    texts[idx].append(text)
+
+            anchors = texts[0]
+            positives = texts[1]
+            negatives = texts[2]
+
+            return anchors, positives, negatives
 
     def train(self, train_dataloader, val_dataloader=None):
 
@@ -80,16 +100,13 @@ class BiEncoderModelPreTrainer:
             STEPS_PER_EPOCH = math.ceil(NUM_ITERATIONS / NUM_TRAIN_EPOCHS)
 
         LOSS_METRIC = "TripletLoss"
+        self.loss_metric = LOSS_METRIC
         self.model.train()
         # Freeze weights
         params = list(self.word_embedding_model.auto_model.named_parameters())
 
-        if LOSS_METRIC == "CosineSimilarityLoss":
-            train_loss = losses.CosineSimilarityLoss(model=self.model)
-        elif LOSS_METRIC == "ContrastiveLoss":
+        if LOSS_METRIC == "ContrastiveLoss":
             train_loss = losses.ContrastiveLoss(model=self.model)
-        elif LOSS_METRIC == "MarginMSELoss":
-            train_loss = losses.MarginMSELoss(model=self.model)
         elif LOSS_METRIC == "TripletLoss":
             train_loss = losses.TripletLoss(
                 model=self.model,
@@ -104,17 +121,31 @@ class BiEncoderModelPreTrainer:
         )  # 10% of train data for warm-up
         evaluator = None
         if val_dataloader:
-            val_dataloader.collate_fn = self.smart_batching_collate
-            sentences1 = []
-            sentences2 = []
-            scores = []
-            for x in val_dataloader:
-                sentences1 = sentences1 + x[0]
-                sentences2 = sentences2 + x[1]
-                scores = scores + x[2]
-            evaluator = EmbeddingSimilarityEvaluator(
-                sentences1=sentences1, sentences2=sentences2, scores=scores
-            )
+            if LOSS_METRIC == "ContrastiveLoss":
+                val_dataloader.collate_fn = self.smart_batching_collate
+                sentences1 = []
+                sentences2 = []
+                scores = []
+                for x in val_dataloader:
+                    sentences1 = sentences1 + x[0]
+                    sentences2 = sentences2 + x[1]
+                    scores = scores + x[2]
+                evaluator = EmbeddingSimilarityEvaluator(
+                    sentences1=sentences1, sentences2=sentences2, scores=scores
+                )
+            else:
+                val_dataloader.collate_fn = self.smart_batching_collate
+                anchors = []
+                positives = []
+                negatives = []
+                scores = []
+                for x in val_dataloader:
+                    anchors = anchors + x[0]
+                    positives = positives + x[1]
+                    negatives = negatives + x[2]
+                evaluator = TripletEvaluator(
+                    anchors=anchors, positives=positives, negatives=negatives
+                )
         print("Setup losses and warmup steps")
         t1 = time.time()
         self.model.fit(
