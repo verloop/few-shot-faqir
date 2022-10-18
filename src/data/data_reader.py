@@ -5,7 +5,7 @@ import os
 
 import pandas as pd
 from sentence_transformers import InputExample
-from torch.utils.data import Dataset, IterableDataset
+from torch.utils.data import Dataset
 from tqdm import tqdm
 
 SPECIAL_TOKENS = {"[SEP]", "[CLS]", "[PAD]"}
@@ -298,22 +298,3 @@ class QuestionTripletsChunkedSentBertDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.examples[idx]
-
-
-class QuestionPairIterableSentBertDataset(IterableDataset):
-    def __init__(self, data_path: str):
-        self.filename = data_path
-
-    def __getitem__(self, idx):
-        return self.examples[idx]
-
-    def line_mapper(self, line):
-        line = line.replace("\n", "")
-        question1, question2, label = line.split(",")
-        inp_example = InputExample(texts=[question1, question2], label=float(label))
-        return inp_example
-
-    def __iter__(self):
-        file_itr = open(self.filename)
-        mapped_itr = map(self.line_mapper, file_itr)
-        return mapped_itr

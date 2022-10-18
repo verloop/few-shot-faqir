@@ -86,11 +86,11 @@ class BiEncoderModelPreTrainer:
 
             return anchors, positives, negatives
 
-    def train(self, train_dataloader, val_dataloader=None):
+    def train(self, config, train_dataloader, val_dataloader=None):
 
-        NUM_ITERATIONS = 140000
-        LEARNING_RATE = 2e-5
-        SCHEDULER = "WarmupLinear"
+        NUM_ITERATIONS = config["PRETRAINING"]["NUM_ITERATIONS"]
+        LEARNING_RATE = config["PRETRAINING"]["LEARNING_RATE"]
+        SCHEDULER = config["PRETRAINING"]["SCHEDULER"]
         TRAIN_OUTPUT_DIR = "./models/" + str(int(time.time())) + "/"
         OPTIMIZER = torch.optim.AdamW
         STEPS_PER_EPOCH = NUM_ITERATIONS
@@ -99,7 +99,7 @@ class BiEncoderModelPreTrainer:
         if STEPS_PER_EPOCH * NUM_TRAIN_EPOCHS > NUM_ITERATIONS:
             STEPS_PER_EPOCH = math.ceil(NUM_ITERATIONS / NUM_TRAIN_EPOCHS)
 
-        LOSS_METRIC = "TripletLoss"
+        LOSS_METRIC = config["PRETRAINING"]["LOSS_METRIC"]
         self.loss_metric = LOSS_METRIC
         self.model.train()
         # Freeze weights

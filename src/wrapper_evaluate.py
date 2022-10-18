@@ -174,7 +174,7 @@ def evaluate_all():
             config["EVALUATION"]["CHECK_OOS_ACCURACY"] = False
         config["DATASETS"]["DATASET_SOURCE"] = dataset["source"]
         config["DATASETS"]["DATASET_NAME"] = dataset["data"]
-
+        config["TRAINING"]["LOSS_METRIC"] = "ContrastiveLoss"
         # # Evaluate bm25
         # config["EVALUATION"]["EVALUATION_METHOD"] = "BM25"
         # eval_metrics = evaluate(config)
@@ -323,30 +323,46 @@ def evaluate_all():
         # )
         # evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
+        # # Evaluate Dense embedding - Pretrained models as a feature extractor
+        # config["EVALUATION"]["EVALUATION_METHOD"] = "BERT_EMBEDDINGS"
+        # config["EVALUATION"]["MODEL_NAME"] = "models/mpnet_base_pt_6"
+        # config["EVALUATION"][
+        #     "TOKENIZER_NAME"
+        # ] = "sentence-transformers/all-mpnet-base-v2"
+        # eval_metrics = evaluate(config)
+        # eval_metrics_pd = parse_eval_metrics(
+        #     eval_metrics,
+        #     method="models/mpnet_base_pt_6",
+        #     data_source=dataset["source"],
+        #     data_name=dataset["data"],
+        #     config=config,
+        # )
+        # evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
+
         # Evaluate after finetuning dense embedding - all-mpnet-base-v2
-        config["TRAINING"]["MODEL_TYPE"] = "BI_ENCODER"
-        config["TRAINING"]["MODEL_NAME"] = "sentence-transformers/all-mpnet-base-v2"
-        config["TRAINING"]["TOKENIZER_NAME"] = config["TRAINING"]["MODEL_NAME"]
-        config["TRAINING"]["LAYERS_TO_UNFREEZE"] = [11]
-        config["TRAINING"]["NUM_ITERATIONS"] = 10000
-        config["TRAINING"]["SCHEDULER"] = "WarmupLinear"
-        config["TRAINING"]["VALIDATION_SPLIT"] = 0.2
+        # config["TRAINING"]["MODEL_TYPE"] = "BI_ENCODER"
+        # config["TRAINING"]["MODEL_NAME"] = "sentence-transformers/all-mpnet-base-v2"
+        # config["TRAINING"]["TOKENIZER_NAME"] = config["TRAINING"]["MODEL_NAME"]
+        # config["TRAINING"]["LAYERS_TO_UNFREEZE"] = [11]
+        # config["TRAINING"]["NUM_ITERATIONS"] = 10000
+        # config["TRAINING"]["SCHEDULER"] = "WarmupLinear"
+        # config["TRAINING"]["VALIDATION_SPLIT"] = 0.2
 
-        model_folder = train(config)
+        # model_folder = train(config)
 
-        config["EVALUATION"]["EVALUATION_METHOD"] = "BERT_EMBEDDINGS"
-        config["EVALUATION"]["MODEL_NAME"] = model_folder
-        config["EVALUATION"]["TOKENIZER_NAME"] = config["TRAINING"]["TOKENIZER_NAME"]
+        # config["EVALUATION"]["EVALUATION_METHOD"] = "BERT_EMBEDDINGS"
+        # config["EVALUATION"]["MODEL_NAME"] = model_folder
+        # config["EVALUATION"]["TOKENIZER_NAME"] = config["TRAINING"]["TOKENIZER_NAME"]
 
-        eval_metrics = evaluate(config)
-        eval_metrics_pd = parse_eval_metrics(
-            eval_metrics,
-            method="all-mpnet-base-v2_finetuned_10K_sampled",
-            data_source=dataset["source"],
-            data_name=dataset["data"],
-            config=config,
-        )
-        evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
+        # eval_metrics = evaluate(config)
+        # eval_metrics_pd = parse_eval_metrics(
+        #     eval_metrics,
+        #     method="all-mpnet-base-v2_finetuned_10K_sampled",
+        #     data_source=dataset["source"],
+        #     data_name=dataset["data"],
+        #     config=config,
+        # )
+        # evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # # Evaluate after finetuning dense embedding - miniLM-L6 10K
         # config["TRAINING"]["MODEL_TYPE"] = "BI_ENCODER"
@@ -371,6 +387,56 @@ def evaluate_all():
         #     config=config,
         # )
         # evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
+
+        # # Evaluate after finetuning dense embedding - pretrained miniLM-L6
+        # config["TRAINING"]["MODEL_TYPE"] = "BI_ENCODER"
+        # config["TRAINING"]["MODEL_NAME"] = "models/base_minilm_triplets_pt_7/"
+        # config["TRAINING"]["TOKENIZER_NAME"] = "sentence-transformers/all-MiniLM-L6-v2"
+        # config["TRAINING"]["LAYERS_TO_UNFREEZE"] = [5]
+        # config["TRAINING"]["NUM_ITERATIONS"] = 10000
+        # config["TRAINING"]["SCHEDULER"] = "WarmupLinear"
+        # config["TRAINING"]["VALIDATION_SPLIT"] = 0.2
+
+        # model_folder = train(config)
+
+        # config["EVALUATION"]["EVALUATION_METHOD"] = "BERT_EMBEDDINGS"
+        # config["EVALUATION"]["MODEL_NAME"] = model_folder
+        # config["EVALUATION"]["TOKENIZER_NAME"] = config["TRAINING"]["TOKENIZER_NAME"]
+
+        # eval_metrics = evaluate(config)
+        # eval_metrics_pd = parse_eval_metrics(
+        #     eval_metrics,
+        #     method="base_minilm_triplets_pt_7_finetuned_10K_sampling",
+        #     data_source=dataset["source"],
+        #     data_name=dataset["data"],
+        #     config=config,
+        # )
+        # evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
+
+        # Evaluate after finetuning dense embedding - pretrained miniLM-L6 with BatchHardTripletLoss
+        config["TRAINING"]["MODEL_TYPE"] = "BI_ENCODER"
+        config["TRAINING"]["MODEL_NAME"] = "models/mpnet_base_pt_6"
+        config["TRAINING"]["TOKENIZER_NAME"] = "sentence-transformers/all-mpnet-base-v2"
+        config["TRAINING"]["LAYERS_TO_UNFREEZE"] = [11]
+        config["TRAINING"]["NUM_ITERATIONS"] = 10000
+        config["TRAINING"]["SCHEDULER"] = "WarmupLinear"
+        config["TRAINING"]["VALIDATION_SPLIT"] = 0
+        config["TRAINING"]["LOSS_METRIC"] = "ContrastiveLoss"
+        model_folder = train(config)
+
+        config["EVALUATION"]["EVALUATION_METHOD"] = "BERT_EMBEDDINGS"
+        config["EVALUATION"]["MODEL_NAME"] = model_folder
+        config["EVALUATION"]["TOKENIZER_NAME"] = config["TRAINING"]["TOKENIZER_NAME"]
+
+        eval_metrics = evaluate(config)
+        eval_metrics_pd = parse_eval_metrics(
+            eval_metrics,
+            method="mpnet_base_pt_6_finetuned_10K_QQ",
+            data_source=dataset["source"],
+            data_name=dataset["data"],
+            config=config,
+        )
+        evaluation_metrics = pd.concat((evaluation_metrics, eval_metrics_pd))
 
         # # Evaluate after finetuning dense embedding - miniLM-L6 20K
         # config["TRAINING"]["MODEL_TYPE"] = "BI_ENCODER"

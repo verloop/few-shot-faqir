@@ -236,7 +236,7 @@ def write_pretraining_triplets(data_path, sample_size, data_set):
                     continue
 
 
-def to_question_pairs_pretraing(
+def to_question_pairs_pretraining(
     dataloaders,
     dataset_names,
     data_path="data/pretrain",
@@ -427,7 +427,7 @@ def generate_data_pretraining(gen_triplets=True, gen_pairs=False):
         train_dataloader, _ = dl_train.get_dataloader()
         dataloaders.append(train_dataloader)
     if gen_pairs:
-        to_question_pairs_pretraing(
+        to_question_pairs_pretraining(
             dataloaders,
             haptik_dataset_names + dialoglue_dataset_names,
             sample_size=int(SAMPLE_SIZE / (1 - VAL_SPLIT)),
