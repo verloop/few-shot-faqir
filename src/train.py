@@ -28,9 +28,39 @@ def train(config):
     if config["TRAINING"]["MODEL_TYPE"] == "BI_ENCODER":
         print("Training and evaluation with Bi-Encoder")
         trainer = BiEncoderModelTrainer(config)
-        train_dataloader, val_dataloader = dl_train.get_qp_sbert_dataloader(
-            batch_size=batch_size, val_split_pct=config["TRAINING"]["VALIDATION_SPLIT"]
-        )
+        if config["TRAINING"]["LOSS_METRIC"] == "ContrastiveLoss":
+            train_dataloader, val_dataloader = dl_train.get_qp_sbert_dataloader(
+                batch_size=batch_size,
+                val_split_pct=config["TRAINING"]["VALIDATION_SPLIT"],
+            )
+        if config["TRAINING"]["LOSS_METRIC"] == "BatchHardTripletLoss":
+            # For online batch training
+            train_dataloader, _ = dl_train.get_sbert_dataloader(
+                batch_size=batch_size,
+            )
+            dl_val = dataloader(
+                data_source=data_source,
+                dataset_name=dataset_name,
+                data_type="val",
+                data_subset=data_subset,
+            )
+            val_dataloader = dl_val.get_triplet_sbert_dataloader(
+                batch_size=batch_size,
+            )
+        if config["TRAINING"]["LOSS_METRIC"] == "TripletLoss":
+            # For online batch training
+            train_dataloader = dl_train.get_triplet_sbert_dataloader(
+                batch_size=batch_size,
+            )
+            dl_val = dataloader(
+                data_source=data_source,
+                dataset_name=dataset_name,
+                data_type="val",
+                data_subset=data_subset,
+            )
+            val_dataloader = dl_val.get_triplet_sbert_dataloader(
+                batch_size=batch_size,
+            )
         if config["DATASETS"]["DATASET_SOURCE"] == "haptik":
             texts = list(dl_train.dataset.df["sentence"])
             labels = list(dl_train.dataset.df["label"])

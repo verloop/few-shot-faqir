@@ -20,7 +20,10 @@ VAL_SPLIT = 0.2  # Use for triplet generation. Adjust total sample size to retai
 SUB_SAMPLE_QQ = False
 
 # change the model depending on the training requirements
-model = SentenceTransformer(model_name_or_path="sentence-transformers/all-MiniLM-L6-v2")
+# model = SentenceTransformer(model_name_or_path="sentence-transformers/all-MiniLM-L6-v2")
+model = SentenceTransformer(
+    model_name_or_path="sentence-transformers/all-mpnet-base-v2"
+)
 
 
 def test_question_pairs(train_dataloader, test_dataloader, data_path, data_subset):
