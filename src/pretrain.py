@@ -16,7 +16,7 @@ def pretrain(config):
     val_dataloader = dl_val.get_triplets_sbert_dataloader(
         batch_size=config["PRETRAINING"]["BATCH_SIZE"]
     )
-    trainer = BiEncoderModelPreTrainer()
+    trainer = BiEncoderModelPreTrainer(model_name=config["PRETRAINING"]["MODEL_NAME"])
     model_folder = trainer.train(config, train_dataloader, val_dataloader)
     print(model_folder)
     return model_folder

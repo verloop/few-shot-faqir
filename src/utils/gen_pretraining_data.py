@@ -20,10 +20,10 @@ SUB_SAMPLE_QQ = True
 VAL_SPLIT = 0.1
 
 # change the model depending on the training requirements
-# model = SentenceTransformer(model_name_or_path="sentence-transformers/all-MiniLM-L6-v2")
-model = SentenceTransformer(
-    model_name_or_path="sentence-transformers/all-mpnet-base-v2"
-)
+model = SentenceTransformer(model_name_or_path="sentence-transformers/all-MiniLM-L6-v2")
+# model = SentenceTransformer(
+#     model_name_or_path="sentence-transformers/all-mpnet-base-v2"
+# )
 
 
 def get_sim(text1_emb, text2_emb):

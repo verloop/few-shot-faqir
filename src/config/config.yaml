@@ -58,7 +58,7 @@ EVALUATION:
 PRETRAINING:
   NUM_ITERATIONS : 140000
   TRAIN_OUTPUT_DIR: "./models/"
-  # Specify the model like "sentence-transformers/all-MiniLM-L6-v2"
+  # Specify the model like "sentence-transformers/all-MiniLM-L6-v2" / "sentence-transformers/all-mpnet-base-v2"
   MODEL_NAME : "sentence-transformers/all-MiniLM-L6-v2"
   # Specify a loss metric for Sentence Bert Bi-Encoder models - ContrastiveLoss / TripletLoss
   LOSS_METRIC : "TripletLoss"

@@ -24,9 +24,8 @@ from sentence_transformers import (  # isort:skip
 
 
 class BiEncoderModelPreTrainer:
-    def __init__(self, do_lower_case=True, device="cuda"):
-        # self.model_name_or_path = "sentence-transformers/all-MiniLM-L6-v2"
-        self.model_name_or_path = "sentence-transformers/all-mpnet-base-v2"
+    def __init__(self, model_name, do_lower_case=True, device="cuda"):
+        self.model_name_or_path = model_name
         self.do_lower_case = do_lower_case
         self.device_str = device
         self.device = torch.device(device)
@@ -89,15 +88,12 @@ class BiEncoderModelPreTrainer:
     def train(self, config, train_dataloader, val_dataloader=None):
 
         NUM_ITERATIONS = config["PRETRAINING"]["NUM_ITERATIONS"]
-        LEARNING_RATE = config["PRETRAINING"]["LEARNING_RATE"]
+        LEARNING_RATE = float(config["PRETRAINING"]["LEARNING_RATE"])
         SCHEDULER = config["PRETRAINING"]["SCHEDULER"]
         TRAIN_OUTPUT_DIR = "./models/" + str(int(time.time())) + "/"
         OPTIMIZER = torch.optim.AdamW
         STEPS_PER_EPOCH = NUM_ITERATIONS
-        NUM_TRAIN_EPOCHS = math.ceil(NUM_ITERATIONS / STEPS_PER_EPOCH)
-
-        if STEPS_PER_EPOCH * NUM_TRAIN_EPOCHS > NUM_ITERATIONS:
-            STEPS_PER_EPOCH = math.ceil(NUM_ITERATIONS / NUM_TRAIN_EPOCHS)
+        NUM_TRAIN_EPOCHS = 1
 
         LOSS_METRIC = config["PRETRAINING"]["LOSS_METRIC"]
         self.loss_metric = LOSS_METRIC
