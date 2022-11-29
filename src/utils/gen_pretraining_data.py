@@ -5,9 +5,9 @@ import math
 import random
 
 import pandas as pd
+import yaml
 from scipy import spatial
 from sentence_transformers import SentenceTransformer
-from torch import embedding
 
 from src.data.dataloaders import (  # isort:skip
     DialogueIntentDataLoader,
@@ -15,15 +15,6 @@ from src.data.dataloaders import (  # isort:skip
 )
 
 random.seed(9001)
-SAMPLE_SIZE = 100000
-SUB_SAMPLE_QQ = True
-VAL_SPLIT = 0.1
-
-# change the model depending on the training requirements
-model = SentenceTransformer(model_name_or_path="sentence-transformers/all-MiniLM-L6-v2")
-# model = SentenceTransformer(
-#     model_name_or_path="sentence-transformers/all-mpnet-base-v2"
-# )
 
 
 def get_sim(text1_emb, text2_emb):
@@ -36,6 +27,7 @@ def get_sim(text1_emb, text2_emb):
 def to_question_triplets_pretraing(
     dataloaders,
     dataset_names,
+    model,
     data_path="data/pretrain",
     sample_size=30000,
     hard_sample=False,
@@ -224,21 +216,19 @@ def write_pretraining_triplets(data_path, sample_size, data_set):
             data_full = data_full.sample(frac=1)
             data_full = data_full[["anchor", "positive", "negative"]]
             for row in data_full.itertuples(index=False):
-                try:
-                    csv_output.writerow(
-                        {
-                            "anchor": row.anchor,
-                            "positive": row.positive,
-                            "negative": row.negative,
-                        }
-                    )
-                except:
-                    continue
+                csv_output.writerow(
+                    {
+                        "anchor": row.anchor,
+                        "positive": row.positive,
+                        "negative": row.negative,
+                    }
+                )
 
 
 def to_question_pairs_pretraining(
     dataloaders,
     dataset_names,
+    model,
     data_path="data/pretrain",
     sample_size=30000,
     hard_sample=False,
@@ -398,19 +388,23 @@ def write_pretraining_question_pairs(data_path, sample_size, data_set):
             data_full = data_full.sample(frac=1)
             data_full = data_full[["question1", "question2", "label"]]
             for row in data_full.itertuples(index=False):
-                try:
-                    csv_output.writerow(
-                        {
-                            "question1": row.question1,
-                            "question2": row.question2,
-                            "label": row.label,
-                        }
-                    )
-                except:
-                    continue
+                csv_output.writerow(
+                    {
+                        "question1": row.question1,
+                        "question2": row.question2,
+                        "label": row.label,
+                    }
+                )
 
 
-def generate_data_pretraining(gen_triplets=True, gen_pairs=False):
+def generate_data_pretraining(
+    model,
+    gen_triplets=True,
+    gen_pairs=False,
+    hard_sample=True,
+    sample_size=100000,
+    val_split=0.1,
+):
     haptik_dataset_names = ["curekart", "powerplay11", "sofmattress"]
     dialoglue_dataset_names = ["banking", "clinc", "hwu"]
     dataloaders = []
@@ -430,19 +424,37 @@ def generate_data_pretraining(gen_triplets=True, gen_pairs=False):
         to_question_pairs_pretraining(
             dataloaders,
             haptik_dataset_names + dialoglue_dataset_names,
-            sample_size=int(SAMPLE_SIZE / (1 - VAL_SPLIT)),
-            hard_sample=True,
-            val_split=VAL_SPLIT,
+            model,
+            sample_size=int(sample_size / (1 - val_split)),
+            hard_sample=hard_sample,
+            val_split=val_split,
         )
     if gen_triplets:
         to_question_triplets_pretraing(
             dataloaders,
             haptik_dataset_names + dialoglue_dataset_names,
-            sample_size=int(SAMPLE_SIZE / (1 - VAL_SPLIT)),
-            hard_sample=True,
-            val_split=VAL_SPLIT,
+            model,
+            sample_size=int(sample_size / (1 - val_split)),
+            hard_sample=hard_sample,
+            val_split=val_split,
         )
 
 
 if __name__ == "__main__":
-    generate_data_pretraining(gen_triplets=True, gen_pairs=False)
+    with open("src/config/config.yaml", "r") as yamlfile:
+        config = yaml.load(yamlfile, Loader=yaml.FullLoader)
+    # change the model depending on the training requirements
+    model = SentenceTransformer(model_name_or_path=config["PRETRAINING"]["MODEL_NAME"])
+    sample_size = config["PRETRAINING"]["SAMPLE_SIZE_PER_DATASET"]
+    val_split = config["PRETRAINING"]["VAL_SPLIT"]
+    hard_sample = config["PRETRAINING"]["HARD_SAMPLE"]
+    gen_triplets = config["PRETRAINING"]["GENERATE_TRIPLETS"]
+    gen_pairs = config["PRETRAINING"]["GENERATE_PAIRS"]
+
+    generate_data_pretraining(
+        model,
+        gen_triplets=True,
+        gen_pairs=False,
+        sample_size=sample_size,
+        val_split=val_split,
+    )
