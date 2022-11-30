@@ -1,19 +1,24 @@
 DATASETS:
-  # Source - haptik / dialoglue
-  DATASET_SOURCE: "haptik"
-  # For Haptik - curekart / powerplay11 / sofmattress
+  # Source - hint3 / dialoglue
+  DATASET_SOURCE: "hint3"
+  # For HINT3 - curekart / powerplay11 / sofmattress
   # For Dialogue - banking / clinc / hwu
   DATASET_NAME: "curekart"
   OOS_CLASS_NAME: "NO_NODES_DETECTED"
-  # Subsets of train data to use. haptik - "train"/"subset_train", dialoglue - "train"/"train_5"/"train_10"
+  # Subsets of train data to use. hint3 - "train"/"subset_train", dialoglue - "train_5"/"train_10"
   DATA_SUBSET: "train"
   N_LABELS: 28
 
 # Training parameters only for BERT based models
 TRAINING:
-  # Model - type - CROSS_ENCODER / BI_ENCODER / CLASSIFIER / SBERT_CROSS_ENCODER
-  MODEL_TYPE : "BI_ENCODER"
-  NUM_ITERATIONS : 1000
+  SUB_SAMPLE_QQ : True # If subsampling is needed for Question Pair generation
+  SAMPLE_SIZE_PER_DATASET: 10 # 100000
+  VAL_SPLIT : 0.1
+  GENERATE_TRIPLETS : False
+  HARD_SAMPLE : True # Used with Sub-sampling
+  # Model - type -  BI_ENCODER / BERT_CLASSIFIER / SBERT_CROSS_ENCODER
+  MODEL_TYPE : "BERT_CLASSIFIER"
+  NUM_ITERATIONS : 10
   TRAIN_OUTPUT_DIR: "./models/"
   # Specify the model like "sentence-transformers/all-MiniLM-L6-v2" or "bert-base-uncased" /"cross-encoder/stsb-distilroberta-base"
   MODEL_NAME : "sentence-transformers/all-MiniLM-L6-v2"
@@ -26,15 +31,15 @@ TRAINING:
   LEARNING_RATE: 2e-5
   # Specify scheduler - "WarmupLinear" for SentenceBert / "linear" for Bert
   SCHEDULER: 'WarmupLinear'
-  VALIDATION_SPLIT: 0
+  VALIDATION_SPLIT: 0.1
 
 # Evaluation for all methods including pre-trained models, BM25, Glove, Fasttext, finedtuned models etc
 EVALUATION:
-  # Evaluation methods - BERT_EMBEDDINGS / BERT_CROSS_ENCODER / CLASSIFIER / SBERT_CROSS_ENCODER / BM25 / GLOVE / FASTTEXT / TFIDF_WORD_EMBEDDINGS / TFIDF_CHAR_EMBEDDINGS / CV_EMBEDDINGS
-  EVALUATION_METHOD : "BERT_EMBEDDINGS"
+  # Evaluation methods - BERT_EMBEDDINGS / BERT_CLASSIFIER / SBERT_CROSS_ENCODER / BM25 / GLOVE / FASTTEXT / TFIDF_WORD_EMBEDDINGS / TFIDF_CHAR_EMBEDDINGS / CV_EMBEDDINGS
+  EVALUATION_METHOD : "SBERT_CROSS_ENCODER"
   # Model name for evaluation - # Specify a model name which is implemented via Huggingface - "bert-base-uncased" / "models/convbert" (DialoGLUE convbert model) / "sentence-transformers/all-MiniLM-L6-v2"
-  MODEL_NAME : "sentence-transformers/all-MiniLM-L6-v2"
-  TOKENIZER_NAME: "sentence-transformers/all-MiniLM-L6-v2"
+  MODEL_NAME : "bert-base-uncased"
+  TOKENIZER_NAME: "bert-base-uncased"
   BATCH_SIZE : 16
   # Glove & Fastext model paths
   FASTTEXT_MODEL_PATH: "models/fasttext_ecom_model_2.bin"
@@ -56,7 +61,14 @@ EVALUATION:
 
 # Training parameters only for BERT based models
 PRETRAINING:
-  NUM_ITERATIONS : 140000
+  SAMPLE_SIZE_PER_DATASET: 10 # 100000
+  VAL_SPLIT : 0.1
+  GENERATE_TRIPLETS : False
+  GENERATE_PAIRS: False
+  HARD_SAMPLE : False
+  PRETRAIN_DATA_PATH: "data/pretrain"
+  STEPS_PER_EPOCH : 10 #140000
+  NUM_TRAIN_EPOCHS : 1
   TRAIN_OUTPUT_DIR: "./models/"
   # Specify the model like "sentence-transformers/all-MiniLM-L6-v2" / "sentence-transformers/all-mpnet-base-v2"
   MODEL_NAME : "sentence-transformers/all-MiniLM-L6-v2"
@@ -69,11 +81,10 @@ PRETRAINING:
 
 
 INFERENCE:
-  CLIENT_SOURCE : "haptik"
   CLIENT_NAMES : ["curekart", "powerplay11"]
   INFERENCE_FILE_PATH: "data/inference.txt"
   MODEL_DIR: "models"
-  MODEL_PATH: "sentence-transformers/all-MiniLM-L6-v2"
+  MODEL_NAME: "sentence-transformers/all-MiniLM-L6-v2"
   EMBEDDING_FILE_NAME: "embeddings.npy"
   TEXTS_FILE_NAME: "texts.npy"
   LABELS_FILE_NAME: "labels.npy"

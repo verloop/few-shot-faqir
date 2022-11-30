@@ -13,7 +13,7 @@ from sklearn.preprocessing import normalize
 class BiEncoderModelPredictor:
     def __init__(self, config, device: str = "cpu"):
         self.config = config
-        self.model_path = self.config["INFERENCE"]["MODEL_PATH"]
+        self.model_path = self.config["INFERENCE"]["MODEL_NAME"]
         self.device = device
         self.layers_to_load = self.config["INFERENCE"]["LAYERS_TO_LOAD"]
         self.weights_lock = Lock()

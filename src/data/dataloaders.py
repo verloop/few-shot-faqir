@@ -10,13 +10,13 @@ from transformers import AutoTokenizer
 from src.data.data_reader import (  # isort:skip
     DialoglueIntentDataset,
     DialoglueTOPDataset,
-    HapticDataset,
+    HintDataset,
     QuestionPairDataset,
     QuestionPairSentBertDataset,
     QuestionPairTestTrainDataset,
     QuestionPairChunkedSentBertDataset,
     QuestionTripletsChunkedSentBertDataset,
-    HapticSbertDataset,
+    HintSbertDataset,
     QuestionTripletsSentBertDataset,
     DialoglueSbertIntentDataset,
 )
@@ -65,10 +65,10 @@ def collate_batch(batch, tokenizer: AutoTokenizer = None, is_qp=False):
     return batch_output, label_list, text_list
 
 
-class HaptikDataLoader:
+class HintDataLoader:
     def __init__(
         self,
-        data_source="haptik",
+        data_source="hint3",
         dataset_name="curekart",
         data_type="train",
         data_subset="train",  # train, train_5,train_10,subset_train
@@ -88,7 +88,7 @@ class HaptikDataLoader:
 
         if data_type in ["train", "test"]:
             print(f"Loading data from {self.data_path}")
-            self.dataset = HapticDataset(self.data_path, intent_label_to_idx)
+            self.dataset = HintDataset(self.data_path, intent_label_to_idx)
 
     def train_test_split(self, dataset, val_split_pct):
         train_split = int((1 - val_split_pct) * len(dataset))
@@ -135,7 +135,7 @@ class HaptikDataLoader:
             return train_dataloader, val_dataloader
 
     def get_sbert_dataloader(self, batch_size=4, shuffle=True, val_split_pct=0):
-        self.sbert_dataset = HapticSbertDataset(self.data_path)
+        self.sbert_dataset = HintSbertDataset(self.data_path)
         if val_split_pct == 0:
             train_dataloader = DataLoader(
                 self.sbert_dataset,

@@ -87,39 +87,39 @@ def evaluate_all():
 
     evaluation_metrics = pd.DataFrame({})
     # datasets = [{
-    #         "source": "haptik",
+    #         "source": "hint",
     #         "data": "curekart",
     #         "data_subset": "train",
     #         "labels": 28,
     #     }]
     datasets = [
-        {"source": "haptik", "data": "curekart", "data_subset": "train", "labels": 28},
+        {"source": "hint", "data": "curekart", "data_subset": "train", "labels": 28},
         {
-            "source": "haptik",
+            "source": "hint",
             "data": "powerplay11",
             "data_subset": "train",
             "labels": 59,
         },
         {
-            "source": "haptik",
+            "source": "hint",
             "data": "sofmattress",
             "data_subset": "train",
             "labels": 21,
         },
         {
-            "source": "haptik",
+            "source": "hint",
             "data": "curekart",
             "data_subset": "subset_train",
             "labels": 28,
         },
         {
-            "source": "haptik",
+            "source": "hint",
             "data": "powerplay11",
             "data_subset": "subset_train",
             "labels": 59,
         },
         {
-            "source": "haptik",
+            "source": "hint",
             "data": "sofmattress",
             "data_subset": "subset_train",
             "labels": 21,
@@ -163,10 +163,10 @@ def evaluate_all():
     for dataset in datasets:
         config["DATASETS"]["DATA_SUBSET"] = dataset["data_subset"]
         config["DATASETS"]["N_LABELS"] = dataset["labels"]
-        if dataset["source"] == "haptik" or dataset["data"] == "clinc":
+        if dataset["source"] == "hint3" or dataset["data"] == "clinc":
             config["EVALUATION"]["CHECK_OOS_ACCURACY"] = True
             config["DATASETS"]["N_LABELS"] = dataset["labels"] + 1
-            if dataset["source"] == "haptik":
+            if dataset["source"] == "hint3":
                 config["DATASETS"]["OOS_CLASS_NAME"] = "NO_NODES_DETECTED"
             else:
                 config["DATASETS"]["OOS_CLASS_NAME"] = "oos"

@@ -25,6 +25,9 @@ from sentence_transformers import (  # isort:skip
 
 class BiEncoderModelPreTrainer:
     def __init__(self, model_name, do_lower_case=True, device="cuda"):
+        """
+        Pretrainer class for Sentence BERT Bi-encoder model with Triplets/Question pairs.
+        """
         self.model_name_or_path = model_name
         self.do_lower_case = do_lower_case
         self.device_str = device
@@ -87,13 +90,12 @@ class BiEncoderModelPreTrainer:
 
     def train(self, config, train_dataloader, val_dataloader=None):
 
-        NUM_ITERATIONS = config["PRETRAINING"]["NUM_ITERATIONS"]
         LEARNING_RATE = float(config["PRETRAINING"]["LEARNING_RATE"])
         SCHEDULER = config["PRETRAINING"]["SCHEDULER"]
         TRAIN_OUTPUT_DIR = "./models/" + str(int(time.time())) + "/"
         OPTIMIZER = torch.optim.AdamW
-        STEPS_PER_EPOCH = NUM_ITERATIONS
-        NUM_TRAIN_EPOCHS = 1
+        STEPS_PER_EPOCH = config["PRETRAINING"]["STEPS_PER_EPOCH"]
+        NUM_TRAIN_EPOCHS = config["PRETRAINING"]["NUM_TRAIN_EPOCHS"]
 
         LOSS_METRIC = config["PRETRAINING"]["LOSS_METRIC"]
         self.loss_metric = LOSS_METRIC
@@ -113,7 +115,7 @@ class BiEncoderModelPreTrainer:
             print("Loss metric not supported")
             raise
         warmup_steps = math.ceil(
-            NUM_ITERATIONS * NUM_TRAIN_EPOCHS * 0.1
+            STEPS_PER_EPOCH * NUM_TRAIN_EPOCHS * 0.1
         )  # 10% of train data for warm-up
         evaluator = None
         if val_dataloader:
@@ -159,7 +161,7 @@ class BiEncoderModelPreTrainer:
             optimizer_class=OPTIMIZER,
         )
 
-        print(f"Time to train {str(time.time() - t1)}")
+        print(f"Time to train.. {str(time.time() - t1)}")
 
         del warmup_steps, train_loss, train_dataloader, params
         return TRAIN_OUTPUT_DIR

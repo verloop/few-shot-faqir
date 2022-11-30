@@ -120,7 +120,7 @@ class DialoglueTOPDataset(Dataset):
         return self.examples[idx]
 
 
-class HapticDataset(Dataset):
+class HintDataset(Dataset):
     def __init__(self, data_path: str, intent_label_to_idx=None):
         self.df = pd.read_csv(data_path)
         intent_names = list(set(self.df["label"])) + ["NO_NODES_DETECTED"]
@@ -149,7 +149,7 @@ class HapticDataset(Dataset):
         return self.examples[idx]
 
 
-class HapticSbertDataset(Dataset):
+class HintSbertDataset(Dataset):
     def __init__(self, data_path: str, intent_label_to_idx=None):
         self.df = pd.read_csv(data_path)
         intent_names = list(set(self.df["label"])) + ["NO_NODES_DETECTED"]

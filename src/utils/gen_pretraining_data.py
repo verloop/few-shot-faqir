@@ -11,16 +11,26 @@ from sentence_transformers import SentenceTransformer
 
 from src.data.dataloaders import (  # isort:skip
     DialogueIntentDataLoader,
-    HaptikDataLoader,
+    HintDataLoader,
 )
 
 random.seed(9001)
 
 
 def get_sim(text1_emb, text2_emb):
+    """
+    Computes cosine similarity between two embeddings.Thresholds it to 0.1 to remove negatives.
+    Arguments
+    ----------
+    text1_emb: Embedding vector one
+    text2_emb: Embedding vector two
+
+    Returns
+    --------
+    Similarity score
+    """
     sim_result = 1 - spatial.distance.cosine(text1_emb, text2_emb)
-    if sim_result <= 0:
-        sim_result = 0.1
+    sim_result = max(sim_result, 0.1)
     return sim_result
 
 
@@ -33,6 +43,18 @@ def to_question_triplets_pretraing(
     hard_sample=False,
     val_split=0,
 ):
+    """
+    For the list of dataloaders, creates triplets within each dataset for the required sample_size.
+    Arguments
+    ----------
+    dataloaders: List of dataloaders
+    dataset_names: List of dataset names corresponding to the dataloaders
+    model: Model to be used for creating similarity scores between question pairs, which is then used for hard sampling
+    data_path: Path where the training data samples will be stored
+    sample_size: Required sample size per dataset
+    hard_sample: Whether to hard sample or not
+    val_split: If greater than 0, creates separate validation samples as well
+    """
     # Will cause memory overflow for large dataset
     for i, dataloader in enumerate(dataloaders):
         data = dataloader.dataset[:]
@@ -112,7 +134,6 @@ def to_question_triplets_pretraing(
         print(f"Reading from {data_path}/{dataset_names[i]}_question_pairs_temp.csv")
         pos_data = df[df.label == 1]
         neg_data = df[df.label == 0]
-        neg_data.to_csv("temp.csv", index=False)
         triplet_anchor, triplet_pos, triplet_neg = [], [], []
         n = max(math.ceil(sample_size / len(data)), 2)
         for row in data:
@@ -177,6 +198,9 @@ def to_question_triplets_pretraing(
 
 
 def write_pretraining_triplets(data_path, sample_size, data_set):
+    """
+    Helper method to read triplet data for each dataset, shuffle it and write it back
+    """
     with open(
         f"data/pretraining_{data_set}_question_triplets.csv", "w", newline=""
     ) as f_output:
@@ -195,13 +219,12 @@ def write_pretraining_triplets(data_path, sample_size, data_set):
             for datasets in glob.glob(
                 f"{data_path}/*_{data_set}_question_triplets.csv"
             ):
-                print(datasets)
-                try:
-                    data = pd.read_csv(
-                        datasets, nrows=chunk_size, skiprows=skip_rows, header=None
-                    )
-                except:
-                    continue
+                # try:
+                data = pd.read_csv(
+                    datasets, nrows=chunk_size, skiprows=skip_rows, header=None
+                )
+                # except:
+                #     continue
                 if data.empty:
                     continue
                 data.columns = ["anchor", "positive", "negative"]
@@ -223,6 +246,9 @@ def write_pretraining_triplets(data_path, sample_size, data_set):
                         "negative": row.negative,
                     }
                 )
+    print(
+        f"Pretraining data created in data/pretraining_{data_set}_question_triplets.csv"
+    )
 
 
 def to_question_pairs_pretraining(
@@ -234,6 +260,18 @@ def to_question_pairs_pretraining(
     hard_sample=False,
     val_split=0,
 ):
+    """
+    For the list of dataloaders, creates Question pairs within each dataset for the required sample_size.
+    Arguments
+    ----------
+    dataloaders: List of dataloaders
+    dataset_names: List of dataset names corresponding to the dataloaders
+    model: Model to be used for creating similarity scores between question pairs, which is then used for hard sampling
+    data_path: Path where the training data samples will be stored
+    sample_size: Required sample size per dataset
+    hard_sample: Whether to hard sample or not
+    val_split: If greater than 0, creates separate validation samples as well
+    """
     # Will cause memory overflow for large dataset
     for i, dataloader in enumerate(dataloaders):
         data = dataloader.dataset[:]
@@ -356,6 +394,9 @@ def to_question_pairs_pretraining(
 
 
 def write_pretraining_question_pairs(data_path, sample_size, data_set):
+    """
+    Helper method to read question pair data for each dataset, shuffle it and write it back
+    """
     with open(
         f"data/pretraining_{data_set}_question_pairs.csv", "w", newline=""
     ) as f_output:
@@ -372,12 +413,12 @@ def write_pretraining_question_pairs(data_path, sample_size, data_set):
         while total_read < sample_size:
             data_full = pd.DataFrame()
             for datasets in glob.glob(f"{data_path}/*{data_set}_question_pairs.csv"):
-                try:
-                    data = pd.read_csv(
-                        datasets, nrows=chunk_size, skiprows=skip_rows, header=None
-                    )
-                except:
-                    continue
+                # try:
+                data = pd.read_csv(
+                    datasets, nrows=chunk_size, skiprows=skip_rows, header=None
+                )
+                # except:
+                #     continue
                 data.columns = ["question1", "question2", "label"]
                 if len(data_full) == 0:
                     data_full = data
@@ -395,6 +436,7 @@ def write_pretraining_question_pairs(data_path, sample_size, data_set):
                         "label": row.label,
                     }
                 )
+    print(f"Pretraining data created in data/pretraining_{data_set}_question_pairs.csv")
 
 
 def generate_data_pretraining(
@@ -404,12 +446,23 @@ def generate_data_pretraining(
     hard_sample=True,
     sample_size=100000,
     val_split=0.1,
+    data_path="data/pretrain",
 ):
-    haptik_dataset_names = ["curekart", "powerplay11", "sofmattress"]
+    """
+    Wrapper function which creates Question pairs / Triplets for pre-training for the required config parameters.
+    Arguments
+    ----------
+    model: Model to be used for creating similarity scores between question pairs, which is then used for hard sampling
+    data_path: Path where the intermediate training data samples will be stored. The final pretraining data is stored under "data" folder.
+    sample_size: Required sample size per dataset
+    hard_sample: Whether to hard sample or not
+    val_split: If greater than 0, creates separate validation samples as well
+    """
+    hint_dataset_names = ["curekart", "powerplay11", "sofmattress"]
     dialoglue_dataset_names = ["banking", "clinc", "hwu"]
     dataloaders = []
-    for dataset_name in haptik_dataset_names:
-        dl_train = HaptikDataLoader(
+    for dataset_name in hint_dataset_names:
+        dl_train = HintDataLoader(
             dataset_name=dataset_name, data_type="train", data_subset="train"
         )
         train_dataloader, _ = dl_train.get_dataloader()
@@ -423,20 +476,22 @@ def generate_data_pretraining(
     if gen_pairs:
         to_question_pairs_pretraining(
             dataloaders,
-            haptik_dataset_names + dialoglue_dataset_names,
+            hint_dataset_names + dialoglue_dataset_names,
             model,
             sample_size=int(sample_size / (1 - val_split)),
             hard_sample=hard_sample,
             val_split=val_split,
+            data_path=data_path,
         )
     if gen_triplets:
         to_question_triplets_pretraing(
             dataloaders,
-            haptik_dataset_names + dialoglue_dataset_names,
+            hint_dataset_names + dialoglue_dataset_names,
             model,
             sample_size=int(sample_size / (1 - val_split)),
             hard_sample=hard_sample,
             val_split=val_split,
+            data_path=data_path,
         )
 
 
@@ -450,11 +505,13 @@ if __name__ == "__main__":
     hard_sample = config["PRETRAINING"]["HARD_SAMPLE"]
     gen_triplets = config["PRETRAINING"]["GENERATE_TRIPLETS"]
     gen_pairs = config["PRETRAINING"]["GENERATE_PAIRS"]
-
+    data_path = config["PRETRAINING"]["PRETRAIN_DATA_PATH"]
     generate_data_pretraining(
         model,
         gen_triplets=True,
         gen_pairs=False,
         sample_size=sample_size,
         val_split=val_split,
+        data_path=data_path,
+        hard_sample=hard_sample,
     )

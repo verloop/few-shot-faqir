@@ -1,9 +1,10 @@
 import numpy as np
+import pandas as pd
 import torch
 import yaml
 from sklearn.metrics import f1_score
 
-from src.data.dataloaders import DialogueIntentDataLoader, HaptikDataLoader
+from src.data.dataloaders import DialogueIntentDataLoader, HintDataLoader
 
 from src.utils.metrics import (  # isort:skip
     map_at_k,
@@ -18,8 +19,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def get_dataloader_class(config):
-    if config["DATASETS"]["DATASET_SOURCE"] == "haptik":
-        return HaptikDataLoader
+    """
+    Helper function to return the dataset specific dataloader
+    """
+    if config["DATASETS"]["DATASET_SOURCE"] == "hint3":
+        return HintDataLoader
     elif config["DATASETS"]["DATASET_SOURCE"] == "dialoglue":
         return DialogueIntentDataLoader
     else:
@@ -28,6 +32,9 @@ def get_dataloader_class(config):
 
 
 def get_batched_embeddings_dense(dl_data, emb_model):
+    """
+    Helper function to return dense embeddings using the embedding model passed. Should be an object of the DenseEmbeddings class
+    """
     embeddings = torch.empty(0)
     labels = []
     texts = []
@@ -45,6 +52,9 @@ def get_batched_embeddings_dense(dl_data, emb_model):
 
 
 def get_batched_embeddings_sparse(dl_data, emb_model):
+    """
+    Helper function to return dense embeddings using the embedding model passed. Should be an object of the SparseEmbedding class
+    """
     embeddings = []
     labels = []
     texts = []
@@ -63,6 +73,9 @@ def get_batched_embeddings_sparse(dl_data, emb_model):
 
 
 def get_text_from_dl(dl_data):
+    """
+    Helper function to get text from the data loader
+    """
     batch_output = []
     for x in dl_data:
         batch_output.extend(x[2])
@@ -72,6 +85,21 @@ def get_text_from_dl(dl_data):
 def run_evaluation_metrics(
     config, actual_labels, predicted_labels, pred_scores, oos_label_indx
 ):
+    """
+    Wrapper method to run evaluation metrics
+    Arguments
+    ----------
+    config: config from config.yaml
+    actual_labels: ground truth encoded labels
+    predicted_labels : predicted labels from the model
+    pred_scores : predicted scores for generating scores with different OOS thresholds
+    oos_label_indx: label index of the class which is marked Out of Scope
+
+    Returns
+    --------
+    A dictionary with evaluation metrics based on settings in config
+
+    """
     k_vals = config["EVALUATION"]["K_VAL"]
     eval_metrics_thresholds = {}
     for threshold in config["EVALUATION"]["OOS_THRESHOLD"]:
@@ -155,3 +183,81 @@ def run_evaluation_metrics(
 def save_yaml(config, save_dir):
     with open(save_dir + "config.yml", "w") as yaml_file:
         yaml.dump(config, yaml_file, default_flow_style=False)
+
+
+def parse_eval_metrics(eval_metrics_thresh, config):
+    """
+    Helper function to save evaluation metrics as a csv file
+    """
+    (
+        thresholds,
+        k_vals,
+        sr,
+        mrr,
+        ndcg,
+        precision,
+        map_val,
+        f1_micro,
+        f1_macro,
+        f1_weighted,
+        oos_accuracy,
+    ) = ([], [], [], [], [], [], [], [], [], [], [])
+    for thresh in eval_metrics_thresh:
+        eval_metrics = eval_metrics_thresh[thresh]
+        for k in eval_metrics:
+            thresholds.append(thresh)
+            k_vals.append(k)
+            if "sr" in eval_metrics[k]:
+                sr.append(eval_metrics[k]["sr"])
+            else:
+                sr.append(-1)
+            if "mrr" in eval_metrics[k]:
+                mrr.append(eval_metrics[k]["mrr"])
+            else:
+                mrr.append(-1)
+            if "ndcg" in eval_metrics[k]:
+                ndcg.append(eval_metrics[k]["ndcg"])
+            else:
+                ndcg.append(-1)
+            if "precision" in eval_metrics[k]:
+                precision.append(eval_metrics[k]["precision"])
+            else:
+                precision.append(-1)
+            if "map" in eval_metrics[k]:
+                map_val.append(eval_metrics[k]["map"])
+            else:
+                map_val.append(-1)
+            if "f1_micro" in eval_metrics[k]:
+                f1_micro.append(eval_metrics[k]["f1_micro"])
+            else:
+                f1_micro.append(-1)
+            if "f1_macro" in eval_metrics[k]:
+                f1_macro.append(eval_metrics[k]["f1_macro"])
+            else:
+                f1_macro.append(-1)
+            if "f1_weighted" in eval_metrics[k]:
+                f1_weighted.append(eval_metrics[k]["f1_weighted"])
+            else:
+                f1_weighted.append(-1)
+            if "oos_accuracy" in eval_metrics[k]:
+                oos_accuracy.append(eval_metrics[k]["oos_accuracy"])
+            else:
+                oos_accuracy.append(-1)
+    results = {
+        "data_source": [config["DATASETS"]["DATASET_SOURCE"]] * len(k_vals),
+        "dataset": [config["DATASETS"]["DATASET_NAME"]] * len(k_vals),
+        "subset": [config["DATASETS"]["DATA_SUBSET"]] * len(k_vals),
+        "threshold": thresholds,
+        "k": k_vals,
+        "sr": sr,
+        "precision": precision,
+        "mrr": mrr,
+        "ndcg": ndcg,
+        "map": map_val,
+        "f1_micro": f1_micro,
+        "f1_macro": f1_macro,
+        "f1_weighted": f1_weighted,
+        "oos_accuracy": oos_accuracy,
+    }
+    data = pd.DataFrame(results)
+    return data
