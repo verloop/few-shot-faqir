@@ -11,7 +11,7 @@ DATASETS:
 
 # Training parameters only for BERT based models
 TRAINING:
-  SUB_SAMPLE_QQ : True # If subsampling is needed for Question Pair generation
+  SUB_SAMPLE_QQ : False # If subsampling is needed for Question Pair generation
   SAMPLE_SIZE_PER_DATASET: 100000
   VAL_SPLIT : 0.1
   GENERATE_TRIPLETS : False
@@ -36,10 +36,10 @@ TRAINING:
 # Evaluation for all methods including pre-trained models, BM25, Glove, Fasttext, finedtuned models etc
 EVALUATION:
   # Evaluation methods - BERT_EMBEDDINGS / BERT_CLASSIFIER / SBERT_CROSS_ENCODER / BM25 / GLOVE / FASTTEXT / TFIDF_WORD_EMBEDDINGS / TFIDF_CHAR_EMBEDDINGS / CV_EMBEDDINGS
-  EVALUATION_METHOD : "SBERT_CROSS_ENCODER"
+  EVALUATION_METHOD : "BERT_EMBEDDINGS"
   # Model name for evaluation - # Specify a model name which is implemented via Huggingface - "bert-base-uncased" / "models/convbert" (DialoGLUE convbert model) / "sentence-transformers/all-MiniLM-L6-v2"
-  MODEL_NAME : "bert-base-uncased"
-  TOKENIZER_NAME: "bert-base-uncased"
+  MODEL_NAME : "sentence-transformers/all-MiniLM-L6-v2"
+  TOKENIZER_NAME: "sentence-transformers/all-MiniLM-L6-v2"
   BATCH_SIZE : 16
   # Glove & Fastext model paths
   FASTTEXT_MODEL_PATH: "models/fasttext_ecom_model_2.bin"
