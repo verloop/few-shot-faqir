@@ -9,6 +9,9 @@ from src.utils.utils import get_dataloader_class
 
 
 def train(config):
+    """
+    Wrapper method for finetuning bi-encoder, classifier and cross-encoder models based on config
+    """
     dataloader = get_dataloader_class(config)
     data_source = config["DATASETS"]["DATASET_SOURCE"]
     dataset_name = config["DATASETS"]["DATASET_NAME"]

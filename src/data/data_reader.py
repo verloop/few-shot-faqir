@@ -1,5 +1,3 @@
-import chunk
-import csv
 import json
 import os
 
@@ -13,9 +11,7 @@ SPECIAL_TOKENS = {"[SEP]", "[CLS]", "[PAD]"}
 
 class DialoglueIntentDataset(Dataset):
     def __init__(self, data_path: str, intent_label_to_idx=None):
-
         data_dirname = os.path.dirname(os.path.abspath(data_path))
-
         # Intent categories
         intent_vocab_path = os.path.join(data_dirname, "categories.json")
         intent_names = json.load(open(intent_vocab_path))

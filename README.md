@@ -13,7 +13,7 @@ Create a virtual environment and setup the requirements
 
 ```pip install -r requirements.txt```
 
-Download data from here -> Google drive link
+Download data from here -> [FAQ Data](https://drive.google.com/file/d/1QybdQ6VRHvsXfiPlE4DTZWxKQ0sn4xid/view?usp=sharing)
 
 Extract under ```src/data```
 
@@ -101,7 +101,7 @@ Change the parameters in ```config.yaml``` under the ```src/config``` folder and
 
 3. Pretraining, followed by fine-tuning
 
-	Under the data folder create a folder called "pretrain"
+	Under the ```data``` folder create a folder called ```pretrain```
 
 	```mkdir pretrain```
 
