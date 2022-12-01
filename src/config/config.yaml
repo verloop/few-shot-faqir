@@ -81,7 +81,7 @@ PRETRAINING:
 
 
 INFERENCE:
-  CLIENT_NAMES : ["curekart", "powerplay11"]
+  TENANT_NAMES : ["curekart", "powerplay11"]
   INFERENCE_FILE_PATH: "data/inference.txt"
   MODEL_DIR: "models"
   MODEL_NAME: "sentence-transformers/all-MiniLM-L6-v2"

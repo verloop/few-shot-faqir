@@ -215,18 +215,18 @@ Change the parameters in ```config.yaml``` under the ```src/config``` folder and
 
 ### INFERENCE
 
-Parameters here is used to test the final inference with client weight switching.
+Parameters here is used to test the final inference with tenant weight switching.
 
 | Parameter | Usage |
 |---|---|
-| CLIENT_NAMES | Set of client names for whom the inference engine is setup. For example ["curekart", "powerplay11"] |
+| TENANT_NAMES | Set of tenant names for whom the inference engine is setup. For example ["curekart", "powerplay11"] |
 | INFERENCE_FILE_PATH | Path to the file where the inference data is present. "data/inference.txt" |
-| MODEL_DIR | Path to model directory where client weights should be stored . Default is "models" |
+| MODEL_DIR | Path to model directory where tenant weights should be stored . Default is "models" |
 | MODEL_NAME | Base model to be loaded. Eg "sentence-transformers/all-MiniLM-L6-v2" |
 | EMBEDDING_FILE_NAME | The file name of the embeddings of the train set which is stored in numpy format. "embeddings.npy" |
 | TEXTS_FILE_NAME | The file name for texts from the train set which is stored in numpy format."texts.npy" |
 | LABELS_FILE_NAME | The file name containing the labels from the train set stored in numpy format. "labels.npy" |
-| LAYERS_TO_LOAD | Specify the model layer to swap for each client. This should match with how it was trained. Eg. [5] |
+| LAYERS_TO_LOAD | Specify the model layer to swap for each tenant. This should match with how it was trained. Eg. [5] |
 
 
 ## Configuration notes For different usecases
