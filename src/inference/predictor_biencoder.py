@@ -13,7 +13,7 @@ from sklearn.preprocessing import normalize
 class BiEncoderModelPredictor:
     def __init__(self, config, device: str = "cpu"):
         self.config = config
-        self.model_path = self.config["INFERENCE"]["MODEL_PATH"]
+        self.model_path = self.config["INFERENCE"]["MODEL_NAME"]
         self.device = device
         self.layers_to_load = self.config["INFERENCE"]["LAYERS_TO_LOAD"]
         self.weights_lock = Lock()
@@ -24,7 +24,7 @@ class BiEncoderModelPredictor:
             raise
 
     def _load(self, model_path, device):
-        self.word_embedding_model = models.Transformer(model_path)
+        self.word_embedding_model = models.Transformer(model_path, do_lower_case=True)
         self.pooling_model = models.Pooling(
             self.word_embedding_model.get_word_embedding_dimension(),
             pooling_mode_mean_tokens=True,

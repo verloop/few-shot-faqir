@@ -39,7 +39,7 @@ def evaluate_bert_crossencoder(config):
     batch_size = config["EVALUATION"]["BATCH_SIZE"]
     tokenizer = AutoTokenizer.from_pretrained(config["EVALUATION"]["TOKENIZER_NAME"])
     # Evaluation on reduced samples
-    if config["DATASETS"]["DATASET_SOURCE"] == "haptik":
+    if config["DATASETS"]["DATASET_SOURCE"] == "hint3":
         data_subset = "subset_train"
     else:
         data_subset = "train_5"

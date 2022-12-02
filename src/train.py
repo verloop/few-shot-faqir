@@ -1,8 +1,6 @@
 import yaml
 from transformers import AutoTokenizer
 
-from src.data.dataloaders import HaptikDataLoader
-from src.evaluate import evaluate
 from src.training.train_biencoder import BiEncoderModelTrainer
 from src.training.train_classifier import BertBasedClassifier
 from src.training.train_crossencoder import CrossEncoderModelTrainer
@@ -11,6 +9,9 @@ from src.utils.utils import get_dataloader_class
 
 
 def train(config):
+    """
+    Wrapper method for finetuning bi-encoder, classifier and cross-encoder models based on config
+    """
     dataloader = get_dataloader_class(config)
     data_source = config["DATASETS"]["DATASET_SOURCE"]
     dataset_name = config["DATASETS"]["DATASET_NAME"]
@@ -28,11 +29,51 @@ def train(config):
     if config["TRAINING"]["MODEL_TYPE"] == "BI_ENCODER":
         print("Training and evaluation with Bi-Encoder")
         trainer = BiEncoderModelTrainer(config)
-        train_dataloader, val_dataloader = dl_train.get_qp_sbert_dataloader(
-            batch_size=batch_size, val_split_pct=config["TRAINING"]["VALIDATION_SPLIT"]
-        )
-        texts = list(dl_train.dataset.df["sentence"])
-        labels = list(dl_train.dataset.df["label"])
+        if config["TRAINING"]["LOSS_METRIC"] == "ContrastiveLoss":
+            train_dataloader, val_dataloader = dl_train.get_qp_sbert_dataloader(
+                batch_size=batch_size,
+                val_split_pct=config["TRAINING"]["VALIDATION_SPLIT"],
+            )
+        elif config["TRAINING"]["LOSS_METRIC"] == "BatchHardTripletLoss":
+            # For online batch training
+            train_dataloader, _ = dl_train.get_sbert_dataloader(
+                batch_size=batch_size,
+            )
+
+            dl_val = dataloader(
+                data_source=data_source,
+                dataset_name=dataset_name,
+                data_type="val",
+                data_subset=data_subset,
+            )
+            val_dataloader = dl_val.get_triplet_sbert_dataloader(
+                batch_size=batch_size,
+            )
+        elif config["TRAINING"]["LOSS_METRIC"] == "TripletLoss":
+            # For offline batch training
+            train_dataloader = dl_train.get_triplet_sbert_dataloader(
+                batch_size=batch_size,
+            )
+
+            dl_val = dataloader(
+                data_source=data_source,
+                dataset_name=dataset_name,
+                data_type="val",
+                data_subset=data_subset,
+            )
+            val_dataloader = dl_val.get_triplet_sbert_dataloader(
+                batch_size=batch_size,
+            )
+        else:
+            print("Invalid loss metric")
+            return
+        if config["DATASETS"]["DATASET_SOURCE"] == "hint3":
+            texts = list(dl_train.dataset.df["sentence"])
+            labels = list(dl_train.dataset.df["label"])
+        else:
+            texts = list(dl_train.dataset.df["text"])
+            labels = list(dl_train.dataset.df["category"])
+
         model_folder = trainer.train(texts, labels, train_dataloader, val_dataloader)
         print(model_folder)
         return model_folder
@@ -60,11 +101,13 @@ def train(config):
         print(model_folder)
         return model_folder
 
-    if config["TRAINING"]["MODEL_TYPE"] == "CLASSIFIER":
+    if config["TRAINING"]["MODEL_TYPE"] == "BERT_CLASSIFIER":
         print("Training with classifier")
         tokenizer = AutoTokenizer.from_pretrained(config["TRAINING"]["TOKENIZER_NAME"])
         train_dataloader, val_dataloader = dl_train.get_dataloader(
-            batch_size=batch_size, tokenizer=tokenizer, val_split_pct=0.2
+            batch_size=batch_size,
+            tokenizer=tokenizer,
+            val_split_pct=config["TRAINING"]["VALIDATION_SPLIT"],
         )
         bert_classifier = BertBasedClassifier(
             model_name=config["TRAINING"]["MODEL_NAME"], num_labels=num_labels

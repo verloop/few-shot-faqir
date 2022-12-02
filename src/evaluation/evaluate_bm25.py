@@ -17,6 +17,8 @@ def evaluate_bm25(config):
     tokenizer = nlp.tokenizer
 
     def _preprocess_text(sentence):
+        # Lower case
+        sentence = sentence.lower()
         # remove punctuation
         sentence = re.sub(r"[^\w\s]", "", sentence)
         # tokenize
