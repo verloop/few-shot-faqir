@@ -13,7 +13,7 @@ In this work, we evaluate performance for Business FAQ retrieval both with stand
 
 2. Download data from here -> [FAQ Data](https://drive.google.com/file/d/1QybdQ6VRHvsXfiPlE4DTZWxKQ0sn4xid/view?usp=sharing)
 
-3. Extract under `src/data`
+3. Extract under: `src/data`
 
 ```
 data
@@ -49,9 +49,9 @@ data
         N_LABELS: 77
 
     EVALUATION:
-		EVALUATION_METHOD : "BERT_EMBEDDINGS"
-		MODEL_NAME : "bert-base-uncased"
-		TOKENIZER_NAME : "bert-base-uncased"
+        EVALUATION_METHOD : "BERT_EMBEDDINGS"
+        MODEL_NAME : "bert-base-uncased"
+        TOKENIZER_NAME : "bert-base-uncased"
     ```
 
 	* Then run: ```python -m src.evaluate```
@@ -77,7 +77,7 @@ data
         N_LABELS: 77
 
     TRAINING:
-		MODEL_TYPE : "BI_ENCODER"
+        MODEL_TYPE : "BI_ENCODER"
         MODEL_NAME : "sentence-transformers/all-mpnet-base-v2"
         TOKENIZER_NAME  : "sentence-transformers/all-mpnet-base-v2"
         LAYERS_TO_UNFREEZE : [11]
@@ -92,16 +92,16 @@ data
 
     ```yaml
 	EVALUATION:
-		EVALUATION_METHOD : "BERT_EMBEDDINGS"
-		MODEL_NAME : "<model_folder>"
-		TOKENIZER_NAME : "sentence-transformers/all-mpnet-base-v2"
+        EVALUATION_METHOD : "BERT_EMBEDDINGS"
+        MODEL_NAME : "<model_folder>"
+        TOKENIZER_NAME : "sentence-transformers/all-mpnet-base-v2"
     ```
 
 	- Then run ```python -m src.evaluate```
 
 4. Pretraining, followed by fine-tuning
 
-	- Under the `data` folder create a folder called `pretrain`: ```mkdir pretrain```
+	- Under the `"data"` folder create a folder called `"pretrain"`: ```mkdir pretrain```
 
 	- Set the required parameters in the `config.yaml` file.
 
@@ -109,7 +109,7 @@ data
 
 	- Pretrain the bi-encoder with offline Triplets: ```python -m src.pretrain```
 
-	- Fine-tuning the pre-trained model: Follow same steps as listed in 2.
+	- Fine-tuning the pre-trained model: Follow same steps as listed in 3.
 
 5. Running inference with trained models with client weight switching
 
@@ -223,7 +223,7 @@ Parameters here is used to test the final inference with tenant weight switching
 
 - For evaluation with `BM25` / `GLOVE` / `FASTTEXT` / `TFIDF_WORD_EMBEDDINGS` / `TFIDF_CHAR_EMBEDDINGS` / `CV_EMBEDDINGS` - Set ```EVALUATION_METHOD``` to `BM25` / `GLOVE` / `FASTTEXT` / `TFIDF_WORD_EMBEDDINGS` / `TFIDF_CHAR_EMBEDDINGS` / `CV_EMBEDDINGS`. For Glove, Fasttext etc, the model path (```GLOVE_MODEL_PATH```, ```FASTTEXT_MODEL_PATH```) should be specified correctly.
 
-- For evaluation with `BERT` / `Sentence BERT embeddings`, set ```EVALUATION_METHOD``` to `"BERT_EMBEDDINGS"`. Set ```MODEL_NAME``` and ```TOKENIZER_NAME``` with any BERT model which can be loaded with Huggingface. Eg. `"bert-base-uncased"` / `"sentence-transformers"`/`"all-MiniLM-L6-v2"`
+- For evaluation with `BERT` / `Sentence BERT embeddings`, set ```EVALUATION_METHOD``` to `"BERT_EMBEDDINGS"`. Set ```MODEL_NAME``` and ```TOKENIZER_NAME``` with any BERT model which can be loaded with Huggingface. Eg. `"bert-base-uncased"` / `"sentence-transformers/all-MiniLM-L6-v2"`
 
 - For evaluation using `BERT` in a classifier approach, set ```EVALUATION_METHOD``` to `"BERT_CLASSIFIER"`. Set ```MODEL_NAME``` & ```TOKENIZER_NAME``` to any of the Huggingface BERT classifier models.
 
