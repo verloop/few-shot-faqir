@@ -1,7 +1,7 @@
 
 # Multi-Tenant Optimization For Few-Shot Task-Oriented FAQ Retrieval
 
-## Introduction
+## <u>Introduction</u>
 
 This repository contains the code to our paper (Multi-Tenant Optimization For Few-Shot Task-Oriented FAQ Retrieval) accepted at EMNLP 2022.
 In this work, we evaluate performance for Business FAQ retrieval both with standard FAQ retrieval techniques using query-Question (q-Q) similarity and few-shot intent detection techniques.We propose a novel approach to scale multi-tenant FAQ applications in real-world context by contrastive fine-tuning of the last layer in sentence Bi-Encoders along with tenant-specific weight switching.
@@ -9,13 +9,11 @@ In this work, we evaluate performance for Business FAQ retrieval both with stand
 
 ### Setting up the Repo
 
-Create a virtual environment and setup the requirements
+1. Create a virtual environment and setup the requirements: ```pip install -r requirements.txt```
 
-```pip install -r requirements.txt```
+2. Download data from here -> [FAQ Data](https://drive.google.com/file/d/1QybdQ6VRHvsXfiPlE4DTZWxKQ0sn4xid/view?usp=sharing)
 
-Download data from here -> [FAQ Data](https://drive.google.com/file/d/1QybdQ6VRHvsXfiPlE4DTZWxKQ0sn4xid/view?usp=sharing)
-
-Extract under ```src/data```
+3. Extract under `src/data`
 
 ```
 data
@@ -30,112 +28,102 @@ data
 
 ```
 
-Download relevant models as needed (Fasttext/Glove etc)
+4. Download relevant models as needed (Fasttext/Glove etc)
 
-## Example Usage
+## <u>Example Usage</u>
 
-Change the parameters in ```config.yaml``` under the ```src/config``` folder and run the scripts. Check Config File Parameters for more details
+1. Change the parameters in `config.yaml` under the `src/config` folder and run the scripts. Check config file parameters for more details
 
-1. Evaluate base embeddings/models
+2. Evaluate base embeddings/models: ```python -m src.evaluate```
 
-	```python -m src.evaluate```
+    For example:
 
-	Example:
+	* For evaluating the Dialoglue BANKING77 dataset with default Bert Embeddings, these are the configuration changes required in `config.yaml`:
 
-	For evaluating the Dialoglue BANKING77 dataset with default Bert Embeddings, these are the configuration changes required in ```config.yaml```
-	- DATASETS
-		- DATASET_SOURCE - "dialoglue"
-		- DATASET_NAME - "banking"
-		- DATA_SUBSET - "train_5"
-		- labels - 77
-	- EVALUATION
-		- EVALUATION_METHOD - "BERT_EMBEDDINGS"
-		- MODEL_NAME - "bert-base-uncased"
-		- TOKENIZER_NAME - "bert-base-uncased"
+    ```yaml
+    DATASETS:
+        DATASET_SOURCE: "dialoglue"
+        DATASET_NAME: "banking"
+        OOS_CLASS_NAME: "NO_NODES_DETECTED"
+        DATA_SUBSET: "train_5"
+        N_LABELS: 77
 
+    EVALUATION:
+		EVALUATION_METHOD : "BERT_EMBEDDINGS"
+		MODEL_NAME : "bert-base-uncased"
+		TOKENIZER_NAME : "bert-base-uncased"
+    ```
 
-	Then run ```python -m src.evaluate```
+	* Then run: ```python -m src.evaluate```
 
-2. Fine-tuning the bi-encoders/cross-encoders with question pairs/triplets
+3. Fine-tuning the bi-encoders/cross-encoders with question pairs/triplets
 
-	a. Create Question Pair Training data if needed
+    - Create Question Pair Training data if needed: ```python -m src.utils.question_pairs```
 
-	```python -m src.utils.question_pairs```
+	- Train a bi-encoder / cross-encoder with Question Pairs ```python -m src.train```
 
-	b. Train a bi-encoder / cross-encoder with Question Pairs
+	- Change the model to the trained nodel folder and then run ```python -m src.evaluate```
 
-	```python -m src.train```
+	For example:
 
-	c. Change the model to the trained nodel folder and then run
+	- For finetuning the Sentence Bert model with the Dialoglue BANKING77 dataset, these are the configuration changes required in `config.yaml`
 
-	```python -m src.evaluate```
+    ```yaml
+    DATASETS:
+        DATASET_SOURCE: "dialoglue"
+        DATASET_NAME: "banking"
+        OOS_CLASS_NAME: "NO_NODES_DETECTED"
+        DATA_SUBSET: "train_5"
+        N_LABELS: 77
 
-	Example:
+    TRAINING:
+		MODEL_TYPE : "BI_ENCODER"
+        MODEL_NAME : "sentence-transformers/all-mpnet-base-v2"
+        TOKENIZER_NAME  : "sentence-transformers/all-mpnet-base-v2"
+        LAYERS_TO_UNFREEZE : [11]
+        NUM_ITERATIONS : 10000
+        SCHEDULER : "WarmupLinear"
+        VALIDATION_SPLIT : 0.2
+    ```
 
-	For finetuning the Sentence Bert model with the Dialoglue BANKING77 dataset, these are the configuration changes required in ```config.yaml```
-	- DATASETS
-		- DATASET_SOURCE - "dialoglue"
-		- DATASET_NAME - "banking"
-		- DATA_SUBSET - "train_5"
-		- labels - 77
+    - Then run `python -m src.train`
 
-	- TRAINING
-		- MODEL_TYPE - "BI_ENCODER"
-        - MODEL_NAME - "sentence-transformers/all-mpnet-base-v2"
-        - TOKENIZER_NAME  - "sentence-transformers/all-mpnet-base-v2"
-        - LAYERS_TO_UNFREEZE - [11]
-        - NUM_ITERATIONS - 10000
-        - SCHEDULER - "WarmupLinear"
-        - VALIDATION_SPLIT - 0.2
+    - Update the evaluation parameters in `config.yaml`
 
-    Then run ```python -m src.train```
+    ```yaml
+	EVALUATION:
+		EVALUATION_METHOD : "BERT_EMBEDDINGS"
+		MODEL_NAME : "<model_folder>"
+		TOKENIZER_NAME : "sentence-transformers/all-mpnet-base-v2"
+    ```
 
-    Update the evaluation parameters in ```config.yaml```
+	- Then run ```python -m src.evaluate```
 
-	- EVALUATION
-		- EVALUATION_METHOD - "BERT_EMBEDDINGS"
-		- MODEL_NAME - <model_folder> after training
-		- TOKENIZER_NAME - "sentence-transformers/all-mpnet-base-v2"
+4. Pretraining, followed by fine-tuning
 
-	Then run ```python -m src.evaluate```
+	- Under the `data` folder create a folder called `pretrain`: ```mkdir pretrain```
 
-3. Pretraining, followed by fine-tuning
+	- Set the required parameters in the `config.yaml` file.
 
-	Under the ```data``` folder create a folder called ```pretrain```
+	- Generate Offline Triplets for Pre-training: ```python -m src.utils.gen_pretraining_data```
 
-	```mkdir pretrain```
+	- Pretrain the bi-encoder with offline Triplets: ```python -m src.pretrain```
 
-	Set the required parameters in the config.yaml file.
+	- Fine-tuning the pre-trained model: Follow same steps as listed in 2.
 
-	a. Generating Offline Triplets for Pre-training
+5. Running inference with trained models with client weight switching
 
-	```python -m src.utils.gen_pretraining_data```
+	- Train the model for 2 datasets(tenants) separately and store the last layer weights: ```python -m src.train```
 
-	b. Pretraining the bi-encoder with offline Triplets
+	- The tenant specific weights will get stored under `MODEL_DIR/clients` as specified under INFERENCE in `config.yaml`
 
-	```python -m src.pretrain```
+	- Change parameters in `config.yaml` under `INFERENCE`
 
-	c. Fine-tuning the pre-trained model
+	- Specify the tenant names under `CLIENT_NAMES`, `INFERENCE_FILE_PATH`, `MODEL_NAME` and the `LAYERS_TO_LOAD` (the last layer of the model) and then run: ```python -m src.predict```
 
-	Follow same steps as listed in 2.
+	- A sample `inference.txt` is present under the data folder. This contains mixed utterances from 2 sample tenants
 
-4. Running inference with trained models with client weight switching
-
-	Train the model for 2 datasets(tenants) separately and store the last layer weights.
-
-	```python -m src.train```
-
-	The tenant specific weights will get stored under ```MODEL_DIR/clients``` as specified under INFERENCE in ```config.yaml```.
-
-	Change parameters in config.yaml under INFERENCE
-
-	Specify the tenant names under CLIENT_NAMES,INFERENCE_FILE_PATH,MODEL_NAME and the LAYERS_TO_LOAD (the last layer of the model) and then run.
-
-	```python -m src.predict```
-
-	A sample inference.txt is present under the data folder.This contains mixed utterances from 2 sample tenants
-
-## Config file Parameters
+## <u>Config file Parameters</u>
 
 ### DATASETS
 
@@ -229,38 +217,38 @@ Parameters here is used to test the final inference with tenant weight switching
 | LAYERS_TO_LOAD | Specify the model layer to swap for each tenant. This should match with how it was trained. Eg. [5] |
 
 
-## Configuration notes For different usecases
+## <u>Configuration notes For different usecases</u>
 
 **Evaluation**
 
-For evaluation with BM25 / GLOVE / FASTTEXT / TFIDF_WORD_EMBEDDINGS / TFIDF_CHAR_EMBEDDINGS / CV_EMBEDDINGS - Set EVALUATION_METHOD to BM25 / GLOVE / FASTTEXT / TFIDF_WORD_EMBEDDINGS / TFIDF_CHAR_EMBEDDINGS / CV_EMBEDDINGS. For Glove, Fasttext etc, the model path (GLOVE_MODEL_PATH,FASTTEXT_MODEL_PATH) should be specified correctly.
+- For evaluation with `BM25` / `GLOVE` / `FASTTEXT` / `TFIDF_WORD_EMBEDDINGS` / `TFIDF_CHAR_EMBEDDINGS` / `CV_EMBEDDINGS` - Set ```EVALUATION_METHOD``` to `BM25` / `GLOVE` / `FASTTEXT` / `TFIDF_WORD_EMBEDDINGS` / `TFIDF_CHAR_EMBEDDINGS` / `CV_EMBEDDINGS`. For Glove, Fasttext etc, the model path (```GLOVE_MODEL_PATH```, ```FASTTEXT_MODEL_PATH```) should be specified correctly.
 
-For evaluation with BERT / Sentence BERT embeddings, set EVALUATION_METHOD to "BERT_EMBEDDINGS".Set MODEL_NAME and TOKENIZER_NAME with any bert model which can be loaded with Huggingface. Eg. "bert-base-uncased" / "sentence-transformers/all-MiniLM-L6-v2"
+- For evaluation with `BERT` / `Sentence BERT embeddings`, set ```EVALUATION_METHOD``` to `"BERT_EMBEDDINGS"`. Set ```MODEL_NAME``` and ```TOKENIZER_NAME``` with any BERT model which can be loaded with Huggingface. Eg. `"bert-base-uncased"` / `"sentence-transformers"`/`"all-MiniLM-L6-v2"`
 
-For evaluation using BERT in a classier approach, set EVALUATION_METHOD to "BERT_CLASSIFIER". Set MODEL_NAME & TOKENIZER_NAME to any of the Huggingface Bert classifier models.
+- For evaluation using `BERT` in a classifier approach, set ```EVALUATION_METHOD``` to `"BERT_CLASSIFIER"`. Set ```MODEL_NAME``` & ```TOKENIZER_NAME``` to any of the Huggingface BERT classifier models.
 
-For evaluation using SBERT cross encoders, set EVALUATION_METHOD to "SBERT_CROSS_ENCODER".Set MODEL_NAME & TOKENIZER_NAME to an SBERT cross encoder model like "cross-encoder/stsb-distilroberta-base".
+- For evaluation using `SBERT cross encoders`, set ```EVALUATION_METHOD``` to `"SBERT_CROSS_ENCODER"`. Set ```MODEL_NAME``` & ```TOKENIZER_NAME``` to an SBERT cross encoder model like `"cross-encoder/stsb-distilroberta-base"`.
 
 **Fine-tuning**
 
-For fine-tuning bi-encoder SBERT models, under TRAINING, set MODEL_TYPE as "BI_ENCODER", Set MODEL_NAME & TOKENIZER_NAME to Sentence Bert model like "sentence-transformers/all-MiniLM-L6-v2". Set LAYERS_TO_UNFREEZE as [5] which will depend on the model chosen.
+- For fine-tuning bi-encoder `SBERT` models, under ```TRAINING```, set MODEL_TYPE as `"BI_ENCODER"`, Set ```MODEL_NAME``` & ```TOKENIZER_NAME``` to Sentence BERT model like `"sentence-transformers/all-MiniLM-L6-v2"`. Set ```LAYERS_TO_UNFREEZE``` as `[5]` which will depend on the model chosen.
 
-For fine-tuning cross encoder SBERT models, under TRAINING, set MODEL_TYPE as "SBERT_CROSS_ENCODER",Set MODEL_NAME & TOKENIZER_NAME to Sentence Bert model like "cross-encoder/stsb-distilroberta-base".Set LAYERS_TO_UNFREEZE to the last layer which will depend on the model chosen.
+- For fine-tuning `cross encoder SBERT` models, under ```TRAINING```, set ```MODEL_TYPE``` as `"SBERT_CROSS_ENCODER"`, Set ```MODEL_NAME``` & ```TOKENIZER_NAME``` to Sentence Bert model like `"cross-encoder/stsb-distilroberta-base"`.Set ```LAYERS_TO_UNFREEZE``` to the last layer which will depend on the model chosen.
 
-For fine-tuning BERT based models as a classifier,under TRAINING set MODEL_TYPE as "BERT_CLASSIFIER" and Set MODEL_NAME & TOKENIZER_NAME to any of the Huggingface Bert classifier models.Set LAYERS_TO_UNFREEZE to the last layer which will depend on the model chosen.
+- For fine-tuning `BERT` based models as a classifier,under ```TRAINING``` set ```MODEL_TYPE``` as `"BERT_CLASSIFIER"` and Set ```MODEL_NAME``` & ```TOKENIZER_NAME``` to any of the Huggingface Bert classifier models. Set ```LAYERS_TO_UNFREEZE``` to the last layer which will depend on the model chosen.
 
 **Pre-training**
 
-For pre-training, set a MODEL_NAME to a Sentence Bert Bi-encoder model.Set the LOSS_METRIC
+- For pre-training, set a ```MODEL_NAME``` to a Sentence Bert Bi-encoder model. Set the ```LOSS_METRIC```
 
 **Training data**
 
-For Question pair / Triplet generation, under TRAINING, set SUB_SAMPLE_QQ = True if sampling needs to be done. In such a case, set SAMPLE_SIZE_PER_DATASET and HARD_SAMPLE flag as well. Set the MODEL_NAME which will be used for generating the hard samples. If training with Triplets, set GENERATE_TRIPLETS = True to enable triplet generation.
+- For Question pair / Triplet generation, under ```TRAINING```, set ```SUB_SAMPLE_QQ : True``` if sampling needs to be done. In such a case, set ```SAMPLE_SIZE_PER_DATASET```and ```HARD_SAMPLE``` flag as well. Set the ```MODEL_NAME``` which will be used for generating the hard samples. If training with Triplets, set ```GENERATE_TRIPLETS : True``` to enable triplet generation.
 
-For Pretraining data, create the folder "data/pretrain". Select GENERATE_TRIPLETS as True for Triplets and GENERATE_PAIRS as True for Question Pairs.Set SAMPLE_SIZE_PER_DATASET and HARD_SAMPLE flag as well. Set the MODEL_NAME which will be used for generating the hard samples.
+- For Pretraining data, create the folder `"data/pretrain"`. Set ```GENERATE_TRIPLETS : True``` for Triplets and ```GENERATE_PAIRS : True``` for Question Pairs. Set ```SAMPLE_SIZE_PER_DATASET``` and ```HARD_SAMPLE``` flag as well. Set the ```MODEL_NAME``` which will be used for generating the hard samples.
 
 
-## Citation
+## <u>Citation</u>
 
 
 Coming soon
